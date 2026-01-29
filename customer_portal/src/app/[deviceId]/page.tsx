@@ -169,10 +169,13 @@ export default function DeviceDashboard() {
       <header className="bg-primary text-white py-4 px-6 shadow-lg sticky top-0 z-50">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center space-x-4">
-            <button onClick={() => router.push('/dashboard')} className="hover:opacity-75">
-              <i className="lni lni-arrow-left text-xl"></i>
+            <button onClick={() => router.push('/')} className="hover:opacity-75" title="Home">
+              <i className="lni lni-home text-xl"></i>
             </button>
-            <div>
+            <button onClick={() => router.push('/dashboard')} className="hover:opacity-75" title="Dashboard">
+              <i className="lni lni-dashboard text-xl"></i>
+            </button>
+            <div className="border-l border-white/30 pl-4">
               <h1 className="text-xl font-bold">{device?.deviceName || deviceId}</h1>
               <p className="text-sm opacity-75">{device?.location}</p>
             </div>

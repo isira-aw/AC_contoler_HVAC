@@ -8,10 +8,10 @@ export default function HomePage() {
       {/* Header */}
       <header className="bg-primary text-white py-4 px-6 shadow-lg sticky top-0 z-50">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="flex items-center space-x-2">
-            <i className="lni lni-cloud text-2xl"></i>
+          <Link href="/" className="flex items-center space-x-2 hover:opacity-80">
+            <i className="lni lni-home text-2xl"></i>
             <span className="text-xl font-bold">Smart HVAC</span>
-          </div>
+          </Link>
           <div className="space-x-4">
             <Link href="/login" className="hover:underline">
               Login

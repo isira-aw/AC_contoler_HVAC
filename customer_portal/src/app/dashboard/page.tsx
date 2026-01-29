@@ -109,9 +109,14 @@ export default function DashboardPage() {
       {/* Header */}
       <header className="bg-primary text-white py-4 px-6 shadow-lg sticky top-0 z-50">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="flex items-center space-x-2">
-            <i className="lni lni-cloud text-2xl"></i>
-            <span className="text-xl font-bold">Smart HVAC</span>
+          <div className="flex items-center space-x-6">
+            <button onClick={() => router.push('/')} className="hover:opacity-75" title="Home">
+              <i className="lni lni-home text-2xl"></i>
+            </button>
+            <div className="flex items-center space-x-2">
+              <i className="lni lni-dashboard text-2xl"></i>
+              <span className="text-xl font-bold">Dashboard</span>
+            </div>
           </div>
           <div className="flex items-center space-x-4">
             <span>{user?.username}</span>
