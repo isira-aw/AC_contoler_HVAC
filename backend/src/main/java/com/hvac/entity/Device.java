@@ -62,6 +62,9 @@ public class Device {
     @Column(name = "temperature_setpoint")
     private Double temperatureSetpoint = 24.0;
 
+    @Column(name = "config_version")
+    private Long configVersion = 0L;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

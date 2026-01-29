@@ -187,10 +187,53 @@ public class MqttService implements MqttCallback {
 
     private void handleStatus(String deviceId, String payload) {
         try {
-            updateDeviceHeartbeat(deviceId);
+            Optional<Device> deviceOpt = deviceRepository.findByDeviceId(deviceId);
+            if (deviceOpt.isPresent()) {
+                Device device = deviceOpt.get();
+                boolean wasOffline = !device.isOnline();
+
+                // Update heartbeat and online status
+                device.setLastHeartbeat(LocalDateTime.now());
+                device.setOnline(true);
+                deviceRepository.save(device);
+
+                // If device was offline and is now coming online, sync the database state to it
+                if (wasOffline) {
+                    logger.info("Device {} came online, syncing database state to device", deviceId);
+                    syncDeviceState(device);
+                }
+            }
             logger.debug("Status update from device: {}", deviceId);
         } catch (Exception e) {
             logger.error("Error handling status for device {}: {}", deviceId, e.getMessage());
+        }
+    }
+
+    /**
+     * Synchronizes the database state to the device.
+     * This ensures that any changes made while the device was offline are applied.
+     */
+    private void syncDeviceState(Device device) {
+        try {
+            ControlCommand command = new ControlCommand();
+            command.setDeviceId(device.getDeviceId());
+            command.setSystemOn(device.isSystemOn());
+            command.setMode(device.getMode());
+            command.setFanSpeed(device.getFanSpeed());
+            command.setTemperatureSetpoint(device.getTemperatureSetpoint());
+
+            String topic = "hvac/" + device.getDeviceId() + "/control";
+            String payload = gson.toJson(command);
+            MqttMessage message = new MqttMessage(payload.getBytes());
+            message.setQos(1);
+            message.setRetained(false);
+            mqttClient.publish(topic, message);
+
+            logger.info("Synced state to device {}: systemOn={}, mode={}, fanSpeed={}, setpoint={}",
+                    device.getDeviceId(), device.isSystemOn(), device.getMode(),
+                    device.getFanSpeed(), device.getTemperatureSetpoint());
+        } catch (MqttException e) {
+            logger.error("Failed to sync state to device {}: {}", device.getDeviceId(), e.getMessage());
         }
     }
 
@@ -214,14 +257,35 @@ public class MqttService implements MqttCallback {
             mqttClient.publish(topic, message);
             logger.info("Sent control command to device {}: {}", deviceId, payload);
 
-            // Update device state
+            // Update device state in database
             Optional<Device> deviceOpt = deviceRepository.findByDeviceId(deviceId);
             if (deviceOpt.isPresent()) {
                 Device device = deviceOpt.get();
-                if (command.getSystemOn() != null) device.setSystemOn(command.getSystemOn());
-                if (command.getMode() != null) device.setMode(command.getMode());
-                if (command.getFanSpeed() != null) device.setFanSpeed(command.getFanSpeed());
-                if (command.getTemperatureSetpoint() != null) device.setTemperatureSetpoint(command.getTemperatureSetpoint());
+                boolean stateChanged = false;
+
+                if (command.getSystemOn() != null && !command.getSystemOn().equals(device.isSystemOn())) {
+                    device.setSystemOn(command.getSystemOn());
+                    stateChanged = true;
+                }
+                if (command.getMode() != null && !command.getMode().equals(device.getMode())) {
+                    device.setMode(command.getMode());
+                    stateChanged = true;
+                }
+                if (command.getFanSpeed() != null && !command.getFanSpeed().equals(device.getFanSpeed())) {
+                    device.setFanSpeed(command.getFanSpeed());
+                    stateChanged = true;
+                }
+                if (command.getTemperatureSetpoint() != null && !command.getTemperatureSetpoint().equals(device.getTemperatureSetpoint())) {
+                    device.setTemperatureSetpoint(command.getTemperatureSetpoint());
+                    stateChanged = true;
+                }
+
+                // Increment config version when state changes to track offline updates
+                if (stateChanged) {
+                    device.setConfigVersion(device.getConfigVersion() + 1);
+                    logger.info("Device {} config version incremented to {}", deviceId, device.getConfigVersion());
+                }
+
                 deviceRepository.save(device);
             }
         } catch (MqttException e) {
