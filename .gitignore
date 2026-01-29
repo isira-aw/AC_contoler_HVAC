@@ -13,6 +13,10 @@ customer_portal/node_modules/
 customer_portal/.next/
 customer_portal/out/
 
+# TypeScript build artifacts
+*.tsbuildinfo
+next-env.d.ts
+
 # Environment files
 .env
 .env.local
