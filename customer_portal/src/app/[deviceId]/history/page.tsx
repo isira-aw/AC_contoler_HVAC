@@ -32,19 +32,19 @@ interface DeviceInfo {
   deviceId: string;
   deviceName: string;
   location: string;
+  online: boolean;
+  systemOn: boolean;
+  mode: string;
 }
 
-interface SimplePrediction {
-  avgTemperature: number;
-  minTemperature: number;
-  maxTemperature: number;
-  temperatureTrend: string;
-  avgPower: number;
-  totalEnergy: number;
-  estimatedDailyEnergy: number;
-  estimatedMonthlyCost: number;
-  peakPowerTime: string;
-  efficiencyRating: string;
+// Backend prediction response interface
+interface BackendPrediction {
+  deviceId: string;
+  estimatedRuntime: number;
+  dailyEnergyPrediction: number;
+  monthlyEnergyPrediction: number;
+  efficiencyScore: number;
+  maintenanceRecommendation: string;
 }
 
 // Column definition for dynamic selection
@@ -87,13 +87,19 @@ export default function HistoryPage() {
   const deviceId = params.deviceId as string;
   const { isAuthenticated, isLoading } = useAuth();
 
+  // Historical data state (date range dependent)
   const [telemetryHistory, setTelemetryHistory] = useState<TelemetryData[]>([]);
-  const [deviceInfo, setDeviceInfo] = useState<DeviceInfo | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [exporting, setExporting] = useState(false);
-  const [predictions, setPredictions] = useState<SimplePrediction | null>(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
-  // Date range state
+  // Current state (always up-to-date, independent of date range)
+  const [deviceInfo, setDeviceInfo] = useState<DeviceInfo | null>(null);
+  const [latestTelemetry, setLatestTelemetry] = useState<TelemetryData | null>(null);
+  const [predictions, setPredictions] = useState<BackendPrediction | null>(null);
+  const [initialLoading, setInitialLoading] = useState(true);
+
+  const [exporting, setExporting] = useState(false);
+
+  // Date range state (only for historical data)
   const [fromDate, setFromDate] = useState(() => {
     const date = new Date();
     date.setDate(date.getDate() - 1);
@@ -145,122 +151,57 @@ export default function HistoryPage() {
     setSelectedColumns(newSelected);
   };
 
-  // Calculate simple predictions using basic math (no ML/AI)
-  const calculatePredictions = useCallback((data: TelemetryData[]): SimplePrediction | null => {
-    if (data.length === 0) return null;
-
-    // Filter valid temperature readings
-    const validTemps = data.filter(d => d.supplyAirTemp !== null).map(d => d.supplyAirTemp!);
-    const validPower = data.filter(d => d.powerWatts !== null).map(d => d.powerWatts!);
-    const validEnergy = data.filter(d => d.energyKwh !== null).map(d => d.energyKwh!);
-
-    if (validTemps.length === 0) return null;
-
-    // Basic statistical calculations
-    const avgTemp = validTemps.reduce((a, b) => a + b, 0) / validTemps.length;
-    const minTemp = Math.min(...validTemps);
-    const maxTemp = Math.max(...validTemps);
-
-    // Temperature trend using simple comparison
-    let trend = 'Stable';
-    if (validTemps.length > 1) {
-      const firstHalf = validTemps.slice(0, Math.floor(validTemps.length / 2));
-      const secondHalf = validTemps.slice(Math.floor(validTemps.length / 2));
-      const avgFirst = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
-      const avgSecond = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
-      const diff = avgSecond - avgFirst;
-      if (diff > 0.5) trend = 'Rising';
-      else if (diff < -0.5) trend = 'Falling';
-    }
-
-    // Power calculations
-    const avgPower = validPower.length > 0
-      ? validPower.reduce((a, b) => a + b, 0) / validPower.length
-      : 0;
-
-    // Energy calculations
-    const totalEnergy = validEnergy.length > 0
-      ? validEnergy[validEnergy.length - 1] - validEnergy[0]
-      : 0;
-
-    // Time span calculation for daily estimate
-    const timeSpanHours = data.length > 1
-      ? (new Date(data[data.length - 1].timestamp).getTime() - new Date(data[0].timestamp).getTime()) / (1000 * 60 * 60)
-      : 1;
-
-    // Estimated daily energy (extrapolate from current data)
-    const energyRate = timeSpanHours > 0 ? totalEnergy / timeSpanHours : 0;
-    const estimatedDailyEnergy = energyRate * 24;
-
-    // Estimated monthly cost (using average electricity rate of $0.12/kWh)
-    const electricityRate = 0.12;
-    const estimatedMonthlyCost = estimatedDailyEnergy * 30 * electricityRate;
-
-    // Find peak power time
-    let peakPowerTime = 'N/A';
-    if (validPower.length > 0) {
-      const maxPower = Math.max(...validPower);
-      const peakIndex = data.findIndex(d => d.powerWatts === maxPower);
-      if (peakIndex !== -1) {
-        peakPowerTime = new Date(data[peakIndex].timestamp).toLocaleTimeString();
-      }
-    }
-
-    // Efficiency rating based on power fluctuation
-    let efficiencyRating = 'Good';
-    if (validPower.length > 1 && avgPower > 0) {
-      const powerVariance = validPower.reduce((sum, val) => sum + Math.pow(val - avgPower, 2), 0) / validPower.length;
-      const stdDev = Math.sqrt(powerVariance);
-      const coefficientOfVariation = (stdDev / avgPower) * 100;
-
-      if (coefficientOfVariation > 30) efficiencyRating = 'Poor';
-      else if (coefficientOfVariation > 15) efficiencyRating = 'Fair';
-      else efficiencyRating = 'Excellent';
-    }
-
-    return {
-      avgTemperature: avgTemp,
-      minTemperature: minTemp,
-      maxTemperature: maxTemp,
-      temperatureTrend: trend,
-      avgPower: avgPower,
-      totalEnergy: Math.abs(totalEnergy),
-      estimatedDailyEnergy: estimatedDailyEnergy,
-      estimatedMonthlyCost: estimatedMonthlyCost,
-      peakPowerTime: peakPowerTime,
-      efficiencyRating: efficiencyRating,
-    };
-  }, []);
-
-  const loadData = useCallback(async () => {
-    setLoading(true);
+  // Load current predictions and device status (always up-to-date)
+  const loadCurrentData = useCallback(async () => {
     try {
-      const [statusRes, historyRes] = await Promise.all([
+      const [statusRes, predictionsRes] = await Promise.all([
         customerApi.getDeviceStatus(deviceId),
-        customerApi.getTelemetryHistory(deviceId, fromDate, toDate),
+        customerApi.getPredictions(deviceId),
       ]);
 
+      // Device info
       setDeviceInfo({
         deviceId: statusRes.data.device.deviceId,
         deviceName: statusRes.data.device.deviceName,
         location: statusRes.data.device.location,
+        online: statusRes.data.device.online,
+        systemOn: statusRes.data.device.systemOn,
+        mode: statusRes.data.device.mode,
       });
+
+      // Latest telemetry
+      if (statusRes.data.telemetry) {
+        setLatestTelemetry(statusRes.data.telemetry);
+      }
+
+      // Backend predictions (always current)
+      setPredictions(predictionsRes.data);
+    } catch (err: any) {
+      if (err.response?.status === 403) {
+        alert('You do not have access to this device');
+        router.push('/dashboard');
+      }
+    }
+  }, [deviceId, router]);
+
+  // Load historical data (date range dependent)
+  const loadHistoricalData = useCallback(async () => {
+    setHistoryLoading(true);
+    try {
+      const historyRes = await customerApi.getTelemetryHistory(deviceId, fromDate, toDate);
 
       // Map all telemetry data fields
       const fullData: TelemetryData[] = (historyRes.data || []).map((item: any) => ({
         timestamp: item.timestamp,
-        // Environmental
         supplyAirTemp: item.supplyAirTemp,
         returnAirTemp: item.returnAirTemp,
         roomTemp: item.roomTemp,
         humidity: item.humidity,
         outdoorTemp: item.outdoorTemp,
-        // Electrical
         lineVoltage: item.lineVoltage,
         currentAmps: item.currentAmps,
         powerWatts: item.powerWatts,
         energyKwh: item.energyKwh,
-        // Mechanical
         compressorOn: item.compressorOn,
         fanSpeed: item.fanSpeed,
         airflowStatus: item.airflowStatus,
@@ -268,19 +209,16 @@ export default function HistoryPage() {
       }));
 
       setTelemetryHistory(fullData);
-      setPredictions(calculatePredictions(fullData));
       setSelectedRows(new Set());
       setSelectAll(false);
     } catch (err: any) {
-      if (err.response?.status === 403) {
-        alert('You do not have access to this device');
-        router.push('/dashboard');
-      }
+      console.error('Failed to load historical data:', err);
     } finally {
-      setLoading(false);
+      setHistoryLoading(false);
     }
-  }, [deviceId, fromDate, toDate, router, calculatePredictions]);
+  }, [deviceId, fromDate, toDate]);
 
+  // Initial load
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.push('/login');
@@ -289,9 +227,26 @@ export default function HistoryPage() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      loadData();
+      const init = async () => {
+        setInitialLoading(true);
+        await loadCurrentData();
+        await loadHistoricalData();
+        setInitialLoading(false);
+      };
+      init();
     }
-  }, [isAuthenticated, loadData]);
+  }, [isAuthenticated, loadCurrentData, loadHistoricalData]);
+
+  // Auto-refresh predictions every 30 seconds
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const interval = setInterval(() => {
+      loadCurrentData();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [isAuthenticated, loadCurrentData]);
 
   const handleSelectAll = () => {
     if (selectAll) {
@@ -311,6 +266,19 @@ export default function HistoryPage() {
     }
     setSelectedRows(newSelected);
     setSelectAll(newSelected.size === telemetryHistory.length);
+  };
+
+  // Get efficiency rating label
+  const getEfficiencyLabel = (score: number): { label: string; color: string } => {
+    if (score >= 90) return { label: 'Excellent', color: 'bg-green-100 text-green-800' };
+    if (score >= 70) return { label: 'Good', color: 'bg-blue-100 text-blue-800' };
+    if (score >= 50) return { label: 'Fair', color: 'bg-yellow-100 text-yellow-800' };
+    return { label: 'Poor', color: 'bg-red-100 text-red-800' };
+  };
+
+  // Calculate estimated monthly cost
+  const getEstimatedMonthlyCost = (monthlyKwh: number, rate = 0.12): number => {
+    return monthlyKwh * rate;
   };
 
   const exportToPDF = async () => {
@@ -373,27 +341,21 @@ export default function HistoryPage() {
           fillColor: [245, 245, 245],
         },
         columnStyles: {
-          0: { cellWidth: 35 }, // Timestamp column
+          0: { cellWidth: 35 },
         },
       });
 
-      // Add predictions summary if available
+      // Add current predictions summary
       if (predictions) {
         const finalY = (doc as any).lastAutoTable.finalY || 70;
+        const efficiency = getEfficiencyLabel(predictions.efficiencyScore);
 
         // Check if we need a new page
-        if (finalY > 220) {
+        if (finalY > 200) {
           doc.addPage();
-          doc.setFontSize(14);
-          doc.setTextColor(9, 65, 102);
-          doc.text('Predictions Summary', 14, 20);
-          let yPos = 30;
-          addPredictionLines(doc, predictions, yPos);
+          addPredictionSection(doc, 20);
         } else {
-          doc.setFontSize(14);
-          doc.setTextColor(9, 65, 102);
-          doc.text('Predictions Summary', 14, finalY + 15);
-          addPredictionLines(doc, predictions, finalY + 25);
+          addPredictionSection(doc, finalY + 15);
         }
       }
 
@@ -418,23 +380,30 @@ export default function HistoryPage() {
     }
   };
 
-  // Helper function to add prediction lines to PDF
-  const addPredictionLines = (doc: jsPDF, pred: SimplePrediction, startY: number) => {
+  // Helper function to add prediction section to PDF
+  const addPredictionSection = (doc: jsPDF, startY: number) => {
+    if (!predictions) return;
+
+    doc.setFontSize(14);
+    doc.setTextColor(9, 65, 102);
+    doc.text('Current Predictions & Analysis', 14, startY);
+
     doc.setFontSize(10);
     doc.setTextColor(0, 0, 0);
+
+    const efficiency = getEfficiencyLabel(predictions.efficiencyScore);
+    const monthlyCost = getEstimatedMonthlyCost(predictions.monthlyEnergyPrediction);
+
     const predictionLines = [
-      `Average Temperature: ${pred.avgTemperature.toFixed(1)}°C`,
-      `Temperature Range: ${pred.minTemperature.toFixed(1)}°C - ${pred.maxTemperature.toFixed(1)}°C`,
-      `Temperature Trend: ${pred.temperatureTrend}`,
-      `Average Power: ${pred.avgPower.toFixed(1)} W`,
-      `Total Energy Used: ${pred.totalEnergy.toFixed(2)} kWh`,
-      `Estimated Daily Energy: ${pred.estimatedDailyEnergy.toFixed(2)} kWh`,
-      `Estimated Monthly Cost: $${pred.estimatedMonthlyCost.toFixed(2)}`,
-      `Peak Power Time: ${pred.peakPowerTime}`,
-      `Efficiency Rating: ${pred.efficiencyRating}`,
+      `Efficiency Score: ${predictions.efficiencyScore.toFixed(0)}% (${efficiency.label})`,
+      `Estimated Runtime: ${predictions.estimatedRuntime.toFixed(1)} hours`,
+      `Daily Energy Prediction: ${predictions.dailyEnergyPrediction.toFixed(2)} kWh`,
+      `Monthly Energy Prediction: ${predictions.monthlyEnergyPrediction.toFixed(2)} kWh`,
+      `Estimated Monthly Cost: $${monthlyCost.toFixed(2)} (at $0.12/kWh)`,
+      `Maintenance: ${predictions.maintenanceRecommendation}`,
     ];
 
-    let yPos = startY;
+    let yPos = startY + 10;
     predictionLines.forEach(line => {
       if (yPos > 280) {
         doc.addPage();
@@ -445,24 +414,19 @@ export default function HistoryPage() {
     });
   };
 
-  const formatValue = (value: any, unit = '') => {
-    if (value === null || value === undefined) return 'N/C';
-    if (typeof value === 'boolean') return value ? 'ON' : 'OFF';
-    return `${typeof value === 'number' ? value.toFixed(1) : value}${unit}`;
-  };
-
-  if (isLoading || loading) {
+  if (isLoading || initialLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <i className="lni lni-spinner-arrow text-4xl text-primary animate-spin"></i>
-          <p className="mt-4 text-gray-600">Loading historical data...</p>
+          <p className="mt-4 text-gray-600">Loading data...</p>
         </div>
       </div>
     );
   }
 
   const selectedColDefs = getSelectedColumnDefs();
+  const efficiency = predictions ? getEfficiencyLabel(predictions.efficiencyScore) : null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -478,181 +442,225 @@ export default function HistoryPage() {
               <p className="text-sm opacity-75">{deviceInfo?.deviceName || deviceId}</p>
             </div>
           </div>
-          <button
-            onClick={exportToPDF}
-            disabled={exporting || telemetryHistory.length === 0 || selectedColumns.size === 0}
-            className="bg-white text-primary px-4 py-2 rounded-lg hover:bg-gray-100 flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {exporting ? (
-              <>
-                <i className="lni lni-spinner-arrow animate-spin"></i>
-                <span>Exporting...</span>
-              </>
-            ) : (
-              <>
-                <i className="lni lni-download"></i>
-                <span>Export PDF</span>
-              </>
-            )}
-          </button>
+          <div className="flex items-center space-x-4">
+            {/* Device Status Badge */}
+            <div className={`flex items-center space-x-2 px-3 py-1 rounded-full ${deviceInfo?.online ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
+              <div className={`w-2 h-2 rounded-full ${deviceInfo?.online ? 'bg-green-400' : 'bg-red-400'}`}></div>
+              <span className="text-sm">{deviceInfo?.online ? 'Online' : 'Offline'}</span>
+            </div>
+            <button
+              onClick={exportToPDF}
+              disabled={exporting || telemetryHistory.length === 0 || selectedColumns.size === 0}
+              className="bg-white text-primary px-4 py-2 rounded-lg hover:bg-gray-100 flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {exporting ? (
+                <>
+                  <i className="lni lni-spinner-arrow animate-spin"></i>
+                  <span>Exporting...</span>
+                </>
+              ) : (
+                <>
+                  <i className="lni lni-download"></i>
+                  <span>Export PDF</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-8">
-        {/* Date Range Selection */}
-        <div className="card mb-6">
-          <h2 className="text-lg font-semibold mb-4 flex items-center">
-            <i className="lni lni-calendar mr-2 text-primary"></i>
-            Select Date Range
-          </h2>
-          <div className="flex flex-wrap gap-4 items-end">
-            <div>
-              <label className="block text-sm text-gray-600 mb-1">From</label>
-              <input
-                type="datetime-local"
-                value={fromDate}
-                onChange={(e) => setFromDate(e.target.value)}
-                className="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary focus:border-primary"
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-600 mb-1">To</label>
-              <input
-                type="datetime-local"
-                value={toDate}
-                onChange={(e) => setToDate(e.target.value)}
-                className="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary focus:border-primary"
-              />
-            </div>
-            <button
-              onClick={loadData}
-              className="btn-primary px-6 py-2"
-            >
-              <i className="lni lni-reload mr-2"></i>
-              Load Data
-            </button>
-          </div>
-        </div>
-
         <div className="grid lg:grid-cols-3 gap-6">
-          {/* Predictions Panel */}
+          {/* Predictions Panel - Always shows current data */}
           <div className="lg:col-span-1">
             <div className="card sticky top-6">
-              <h2 className="text-lg font-semibold mb-4 flex items-center">
-                <i className="lni lni-graph mr-2 text-primary"></i>
-                Predictions & Analysis
-              </h2>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-semibold flex items-center">
+                  <i className="lni lni-graph mr-2 text-primary"></i>
+                  Predictions & Analysis
+                </h2>
+                <span className="text-xs text-gray-500 flex items-center">
+                  <i className="lni lni-reload mr-1"></i>
+                  Live
+                </span>
+              </div>
 
               {predictions ? (
-                <div className="space-y-6">
-                  {/* Temperature Analysis */}
-                  <div>
-                    <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center">
-                      <i className="lni lni-thermometer mr-2 text-blue-500"></i>
-                      Temperature Analysis
-                    </h3>
-                    <div className="bg-blue-50 rounded-lg p-3 space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Average</span>
-                        <span className="font-medium">{predictions.avgTemperature.toFixed(1)}°C</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Range</span>
-                        <span className="font-medium">{predictions.minTemperature.toFixed(1)}°C - {predictions.maxTemperature.toFixed(1)}°C</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Trend</span>
-                        <span className={`font-medium ${
-                          predictions.temperatureTrend === 'Rising' ? 'text-red-600' :
-                          predictions.temperatureTrend === 'Falling' ? 'text-blue-600' : 'text-green-600'
-                        }`}>
-                          {predictions.temperatureTrend === 'Rising' && <i className="lni lni-arrow-up mr-1"></i>}
-                          {predictions.temperatureTrend === 'Falling' && <i className="lni lni-arrow-down mr-1"></i>}
-                          {predictions.temperatureTrend === 'Stable' && <i className="lni lni-minus mr-1"></i>}
-                          {predictions.temperatureTrend}
-                        </span>
+                <div className="space-y-5">
+                  {/* Current Status */}
+                  {latestTelemetry && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                        <i className="lni lni-pulse mr-2 text-primary"></i>
+                        Current Status
+                      </h3>
+                      <div className="bg-gray-50 rounded-lg p-3 grid grid-cols-2 gap-2 text-sm">
+                        <div>
+                          <span className="text-gray-500">Room Temp</span>
+                          <p className="font-semibold">{latestTelemetry.roomTemp?.toFixed(1) || 'N/A'}°C</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Power</span>
+                          <p className="font-semibold">{latestTelemetry.powerWatts?.toFixed(0) || 'N/A'} W</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Humidity</span>
+                          <p className="font-semibold">{latestTelemetry.humidity?.toFixed(0) || 'N/A'}%</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Energy</span>
+                          <p className="font-semibold">{latestTelemetry.energyKwh?.toFixed(2) || 'N/A'} kWh</p>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
 
-                  {/* Energy Analysis */}
-                  <div>
-                    <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center">
-                      <i className="lni lni-bolt mr-2 text-yellow-500"></i>
-                      Energy Analysis
-                    </h3>
-                    <div className="bg-yellow-50 rounded-lg p-3 space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Average Power</span>
-                        <span className="font-medium">{predictions.avgPower.toFixed(1)} W</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Total Energy</span>
-                        <span className="font-medium">{predictions.totalEnergy.toFixed(2)} kWh</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Peak Time</span>
-                        <span className="font-medium">{predictions.peakPowerTime}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Cost Predictions */}
-                  <div>
-                    <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center">
-                      <i className="lni lni-wallet mr-2 text-green-500"></i>
-                      Cost Predictions
-                    </h3>
-                    <div className="bg-green-50 rounded-lg p-3 space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Est. Daily Energy</span>
-                        <span className="font-medium">{predictions.estimatedDailyEnergy.toFixed(2)} kWh</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Est. Monthly Cost</span>
-                        <span className="font-medium text-green-700">${predictions.estimatedMonthlyCost.toFixed(2)}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Efficiency Rating */}
+                  {/* Efficiency Score */}
                   <div>
                     <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center">
                       <i className="lni lni-checkmark-circle mr-2 text-purple-500"></i>
-                      Efficiency Rating
+                      Efficiency Score
                     </h3>
-                    <div className={`rounded-lg p-3 text-center ${
-                      predictions.efficiencyRating === 'Excellent' ? 'bg-green-100 text-green-800' :
-                      predictions.efficiencyRating === 'Good' ? 'bg-blue-100 text-blue-800' :
-                      predictions.efficiencyRating === 'Fair' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-red-100 text-red-800'
-                    }`}>
-                      <span className="text-2xl font-bold">{predictions.efficiencyRating}</span>
-                      <p className="text-xs mt-1 opacity-75">Based on power consumption stability</p>
+                    <div className={`rounded-lg p-4 text-center ${efficiency?.color}`}>
+                      <div className="text-4xl font-bold">{predictions.efficiencyScore.toFixed(0)}%</div>
+                      <div className="text-lg font-semibold mt-1">{efficiency?.label}</div>
+                      <p className="text-xs mt-2 opacity-75">
+                        Based on temperature delta, filter condition, airflow & power factor
+                      </p>
                     </div>
                   </div>
 
-                  {/* Calculation Method Note */}
-                  <div className="text-xs text-gray-500 border-t pt-3">
-                    <p className="flex items-start">
-                      <i className="lni lni-information mr-1 mt-0.5"></i>
-                      Predictions are calculated using basic statistical analysis (averages, trends, and extrapolation) without machine learning.
-                    </p>
+                  {/* Runtime Prediction */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                      <i className="lni lni-timer mr-2 text-blue-500"></i>
+                      Runtime Estimate
+                    </h3>
+                    <div className="bg-blue-50 rounded-lg p-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Estimated Runtime</span>
+                        <span className="text-2xl font-bold text-blue-700">
+                          {predictions.estimatedRuntime.toFixed(1)} hrs
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Based on current load and remaining capacity
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Energy Predictions */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                      <i className="lni lni-bolt mr-2 text-yellow-500"></i>
+                      Energy Predictions
+                    </h3>
+                    <div className="bg-yellow-50 rounded-lg p-3 space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Daily Prediction</span>
+                        <span className="font-semibold">{predictions.dailyEnergyPrediction.toFixed(2)} kWh</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Monthly Prediction</span>
+                        <span className="font-semibold">{predictions.monthlyEnergyPrediction.toFixed(2)} kWh</span>
+                      </div>
+                      <div className="border-t pt-2 mt-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Est. Monthly Cost</span>
+                          <span className="font-bold text-green-700">
+                            ${getEstimatedMonthlyCost(predictions.monthlyEnergyPrediction).toFixed(2)}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-1">at $0.12/kWh average rate</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Maintenance Recommendation */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                      <i className="lni lni-cog mr-2 text-orange-500"></i>
+                      Maintenance
+                    </h3>
+                    <div className={`rounded-lg p-3 ${
+                      predictions.efficiencyScore >= 70 ? 'bg-green-50 border border-green-200' :
+                      predictions.efficiencyScore >= 50 ? 'bg-yellow-50 border border-yellow-200' :
+                      'bg-red-50 border border-red-200'
+                    }`}>
+                      <p className="text-sm">{predictions.maintenanceRecommendation}</p>
+                    </div>
+                  </div>
+
+                  {/* Last Updated */}
+                  <div className="text-xs text-gray-400 border-t pt-3 flex items-center justify-between">
+                    <span>Auto-refreshes every 30 seconds</span>
+                    <button
+                      onClick={loadCurrentData}
+                      className="text-primary hover:underline flex items-center"
+                    >
+                      <i className="lni lni-reload mr-1"></i>
+                      Refresh
+                    </button>
                   </div>
                 </div>
               ) : (
                 <div className="text-center py-8 text-gray-500">
                   <i className="lni lni-graph text-4xl mb-2"></i>
-                  <p>No data available for predictions</p>
+                  <p>No prediction data available</p>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Data Table */}
-          <div className="lg:col-span-2">
+          {/* Historical Data Section */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Date Range Selection */}
+            <div className="card">
+              <h2 className="text-lg font-semibold mb-4 flex items-center">
+                <i className="lni lni-calendar mr-2 text-primary"></i>
+                Historical Data Range
+              </h2>
+              <div className="flex flex-wrap gap-4 items-end">
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">From</label>
+                  <input
+                    type="datetime-local"
+                    value={fromDate}
+                    onChange={(e) => setFromDate(e.target.value)}
+                    className="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary focus:border-primary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">To</label>
+                  <input
+                    type="datetime-local"
+                    value={toDate}
+                    onChange={(e) => setToDate(e.target.value)}
+                    className="border rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary focus:border-primary"
+                  />
+                </div>
+                <button
+                  onClick={loadHistoricalData}
+                  disabled={historyLoading}
+                  className="btn-primary px-6 py-2 flex items-center"
+                >
+                  {historyLoading ? (
+                    <>
+                      <i className="lni lni-spinner-arrow animate-spin mr-2"></i>
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      <i className="lni lni-reload mr-2"></i>
+                      Load Data
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
             {/* Column Selection Card */}
-            <div className="card mb-6">
+            <div className="card">
               <div className="flex justify-between items-center">
                 <h2 className="text-lg font-semibold flex items-center">
                   <i className="lni lni-columns mr-2 text-primary"></i>
@@ -813,6 +821,11 @@ export default function HistoryPage() {
                 <div className="text-center py-12 text-gray-500">
                   <i className="lni lni-warning text-4xl mb-2"></i>
                   <p>Please select at least one column to display</p>
+                </div>
+              ) : historyLoading ? (
+                <div className="text-center py-12 text-gray-500">
+                  <i className="lni lni-spinner-arrow text-4xl animate-spin mb-2"></i>
+                  <p>Loading historical data...</p>
                 </div>
               ) : telemetryHistory.length > 0 ? (
                 <div className="overflow-x-auto">
