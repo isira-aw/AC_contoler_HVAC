@@ -1,6 +1,11 @@
 package com.hvac.mqtt;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.TypeAdapter;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonToken;
+import com.google.gson.stream.JsonWriter;
 import com.hvac.dto.ControlCommand;
 import com.hvac.dto.TelemetryData;
 import com.hvac.entity.Device;
@@ -17,7 +22,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 
 @Service
@@ -30,7 +37,29 @@ public class MqttService implements MqttCallback {
     private final DeviceRepository deviceRepository;
     private final TelemetryRepository telemetryRepository;
     private final FaultDetectionService faultDetectionService;
-    private final Gson gson = new Gson();
+    private final Gson gson = new GsonBuilder()
+            .registerTypeAdapter(LocalDateTime.class, new TypeAdapter<LocalDateTime>() {
+                private final DateTimeFormatter formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
+
+                @Override
+                public void write(JsonWriter out, LocalDateTime value) throws IOException {
+                    if (value == null) {
+                        out.nullValue();
+                    } else {
+                        out.value(formatter.format(value));
+                    }
+                }
+
+                @Override
+                public LocalDateTime read(JsonReader in) throws IOException {
+                    if (in.peek() == JsonToken.NULL) {
+                        in.nextNull();
+                        return null;
+                    }
+                    return LocalDateTime.parse(in.nextString(), formatter);
+                }
+            })
+            .create();
 
     @Value("${mqtt.topic.telemetry}")
     private String telemetryTopic;
