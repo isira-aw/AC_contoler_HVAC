@@ -1,18 +1,24 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 
 export default function HomePage() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-primary text-white py-4 px-6 shadow-lg">
+      <header className="bg-primary text-white py-4 px-4 md:px-6 shadow-lg sticky top-0 z-50">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="flex items-center space-x-2">
-            <i className="lni lni-cloud text-2xl"></i>
-            <span className="text-xl font-bold">Smart HVAC</span>
-          </div>
-          <div className="space-x-4">
+          {/* Left side - Home icon and branding */}
+          <Link href="/" className="flex items-center space-x-2 hover:opacity-80">
+            <i className="lni lni-home text-xl md:text-2xl"></i>
+            <span className="text-lg md:text-xl font-bold">Smart HVAC</span>
+          </Link>
+
+          {/* Desktop menu */}
+          <div className="hidden md:flex items-center space-x-4">
             <Link href="/login" className="hover:underline">
               Login
             </Link>
@@ -20,7 +26,29 @@ export default function HomePage() {
               Register
             </Link>
           </div>
+
+          {/* Mobile hamburger button */}
+          <button
+            className="md:hidden p-2 hover:opacity-75"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          >
+            <i className={`lni ${mobileMenuOpen ? 'lni-close' : 'lni-menu'} text-xl`}></i>
+          </button>
         </div>
+
+        {/* Mobile menu dropdown */}
+        {mobileMenuOpen && (
+          <div className="md:hidden mt-4 pt-4 border-t border-white/20">
+            <div className="flex flex-col space-y-3">
+              <Link href="/login" className="px-2 py-2 hover:bg-white/10 rounded text-center">
+                Login
+              </Link>
+              <Link href="/register" className="bg-white text-primary px-4 py-2 rounded-lg hover:bg-gray-100 text-center">
+                Register
+              </Link>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Hero Section */}
