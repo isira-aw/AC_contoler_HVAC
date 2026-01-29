@@ -7,6 +7,7 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 import com.hvac.dto.ControlCommand;
+import com.hvac.dto.DeviceStatus;
 import com.hvac.dto.TelemetryData;
 import com.hvac.entity.Device;
 import com.hvac.entity.Telemetry;
@@ -187,7 +188,36 @@ public class MqttService implements MqttCallback {
 
     private void handleStatus(String deviceId, String payload) {
         try {
-            updateDeviceHeartbeat(deviceId);
+            // Parse the device's confirmed state from the status message
+            DeviceStatus status = gson.fromJson(payload, DeviceStatus.class);
+
+            Optional<Device> deviceOpt = deviceRepository.findByDeviceId(deviceId);
+            if (deviceOpt.isPresent()) {
+                Device device = deviceOpt.get();
+
+                // Update heartbeat and online status
+                device.setLastHeartbeat(LocalDateTime.now());
+                device.setOnline(true);
+
+                // Update database with the device's confirmed state
+                // This ensures the database only reflects what the device actually reports
+                if (status.getSystemOn() != null) {
+                    device.setSystemOn(status.getSystemOn());
+                }
+                if (status.getMode() != null) {
+                    device.setMode(status.getMode());
+                }
+                if (status.getFanSpeed() != null) {
+                    device.setFanSpeed(status.getFanSpeed());
+                }
+                if (status.getTemperatureSetpoint() != null) {
+                    device.setTemperatureSetpoint(status.getTemperatureSetpoint());
+                }
+
+                deviceRepository.save(device);
+                logger.debug("Updated device {} state from confirmed status: systemOn={}, mode={}, fanSpeed={}, setpoint={}",
+                        deviceId, device.isSystemOn(), device.getMode(), device.getFanSpeed(), device.getTemperatureSetpoint());
+            }
             logger.debug("Status update from device: {}", deviceId);
         } catch (Exception e) {
             logger.error("Error handling status for device {}: {}", deviceId, e.getMessage());
@@ -213,17 +243,9 @@ public class MqttService implements MqttCallback {
             message.setRetained(false);
             mqttClient.publish(topic, message);
             logger.info("Sent control command to device {}: {}", deviceId, payload);
-
-            // Update device state
-            Optional<Device> deviceOpt = deviceRepository.findByDeviceId(deviceId);
-            if (deviceOpt.isPresent()) {
-                Device device = deviceOpt.get();
-                if (command.getSystemOn() != null) device.setSystemOn(command.getSystemOn());
-                if (command.getMode() != null) device.setMode(command.getMode());
-                if (command.getFanSpeed() != null) device.setFanSpeed(command.getFanSpeed());
-                if (command.getTemperatureSetpoint() != null) device.setTemperatureSetpoint(command.getTemperatureSetpoint());
-                deviceRepository.save(device);
-            }
+            // NOTE: Database is NOT updated here. The device will confirm the change
+            // by sending a status message, and handleStatus() will update the database.
+            // This ensures the database only reflects confirmed device state.
         } catch (MqttException e) {
             logger.error("Failed to send control command to device {}: {}", deviceId, e.getMessage());
             throw new RuntimeException("Failed to send control command", e);
