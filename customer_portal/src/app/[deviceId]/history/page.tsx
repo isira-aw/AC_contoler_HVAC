@@ -118,6 +118,7 @@ export default function HistoryPage() {
     new Set(DEFAULT_SELECTED_COLUMNS)
   );
   const [showColumnSelector, setShowColumnSelector] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Get selected column definitions in order
   const getSelectedColumnDefs = useCallback(() => {
@@ -431,25 +432,30 @@ export default function HistoryPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-primary text-white py-4 px-6 shadow-lg sticky top-0 z-50">
+      <header className="bg-primary text-white py-4 px-4 md:px-6 shadow-lg sticky top-0 z-50">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="flex items-center space-x-4">
+          {/* Left side - Navigation */}
+          <div className="flex items-center space-x-3 md:space-x-4">
             <button onClick={() => router.push('/')} className="hover:opacity-75" title="Home">
               <i className="lni lni-home text-xl"></i>
             </button>
-            <button onClick={() => router.push('/dashboard')} className="hover:opacity-75" title="Dashboard">
+            <button onClick={() => router.push('/dashboard')} className="hover:opacity-75 hidden sm:flex items-center space-x-1">
+              <span className="text-sm font-medium">Dashboard</span>
+            </button>
+            <button onClick={() => router.push('/dashboard')} className="hover:opacity-75 sm:hidden" title="Dashboard">
               <i className="lni lni-dashboard text-xl"></i>
             </button>
             <button onClick={() => router.push(`/${deviceId}`)} className="hover:opacity-75" title="Back to Device">
               <i className="lni lni-arrow-left text-xl"></i>
             </button>
-            <div className="border-l border-white/30 pl-4">
-              <h1 className="text-xl font-bold">Historical Data & Predictions</h1>
-              <p className="text-sm opacity-75">{deviceInfo?.deviceName || deviceId}</p>
+            <div className="border-l border-white/30 pl-3 md:pl-4 hidden sm:block">
+              <h1 className="text-base md:text-xl font-bold">Historical Data</h1>
+              <p className="text-xs md:text-sm opacity-75">{deviceInfo?.deviceName || deviceId}</p>
             </div>
           </div>
-          <div className="flex items-center space-x-4">
-            {/* Device Status Badge */}
+
+          {/* Desktop menu */}
+          <div className="hidden md:flex items-center space-x-4">
             <div className={`flex items-center space-x-2 px-3 py-1 rounded-full ${deviceInfo?.online ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
               <div className={`w-2 h-2 rounded-full ${deviceInfo?.online ? 'bg-green-400' : 'bg-red-400'}`}></div>
               <span className="text-sm">{deviceInfo?.online ? 'Online' : 'Offline'}</span>
@@ -472,7 +478,53 @@ export default function HistoryPage() {
               )}
             </button>
           </div>
+
+          {/* Mobile - Status and hamburger */}
+          <div className="flex md:hidden items-center space-x-3">
+            <div className={`w-3 h-3 rounded-full ${deviceInfo?.online ? 'bg-green-400' : 'bg-red-400'}`}></div>
+            <button
+              className="p-2 hover:opacity-75"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              <i className={`lni ${mobileMenuOpen ? 'lni-close' : 'lni-menu'} text-xl`}></i>
+            </button>
+          </div>
         </div>
+
+        {/* Mobile menu dropdown */}
+        {mobileMenuOpen && (
+          <div className="md:hidden mt-4 pt-4 border-t border-white/20">
+            <div className="flex flex-col space-y-3">
+              <div className="px-2">
+                <h1 className="text-base font-bold">Historical Data</h1>
+                <p className="text-xs opacity-75">{deviceInfo?.deviceName || deviceId}</p>
+              </div>
+              <div className="flex items-center justify-between px-2">
+                <span className="text-sm">Device Status</span>
+                <span className={`text-sm ${deviceInfo?.online ? 'text-green-300' : 'text-red-300'}`}>
+                  {deviceInfo?.online ? 'Online' : 'Offline'}
+                </span>
+              </div>
+              <button
+                onClick={exportToPDF}
+                disabled={exporting || telemetryHistory.length === 0 || selectedColumns.size === 0}
+                className="bg-white text-primary px-4 py-2 rounded-lg hover:bg-gray-100 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {exporting ? (
+                  <>
+                    <i className="lni lni-spinner-arrow animate-spin"></i>
+                    <span>Exporting...</span>
+                  </>
+                ) : (
+                  <>
+                    <i className="lni lni-download"></i>
+                    <span>Export PDF</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-8">

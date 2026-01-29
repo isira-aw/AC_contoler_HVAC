@@ -26,6 +26,7 @@ export default function DashboardPage() {
   const [assignDeviceId, setAssignDeviceId] = useState('');
   const [assignPassword, setAssignPassword] = useState('');
   const [error, setError] = useState('');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -107,18 +108,18 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-primary text-white py-4 px-6 shadow-lg sticky top-0 z-50">
+      <header className="bg-primary text-white py-4 px-4 md:px-6 shadow-lg sticky top-0 z-50">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="flex items-center space-x-6">
+          {/* Left side - Navigation */}
+          <div className="flex items-center space-x-4 md:space-x-6">
             <button onClick={() => router.push('/')} className="hover:opacity-75" title="Home">
-              <i className="lni lni-home text-2xl"></i>
+              <i className="lni lni-home text-xl md:text-2xl"></i>
             </button>
-            <div className="flex items-center space-x-2">
-              <i className="lni lni-dashboard text-2xl"></i>
-              <span className="text-xl font-bold">Dashboard</span>
-            </div>
+            <span className="text-lg md:text-xl font-bold">Dashboard</span>
           </div>
-          <div className="flex items-center space-x-4">
+
+          {/* Desktop menu */}
+          <div className="hidden md:flex items-center space-x-4">
             <span>{user?.username}</span>
             <button
               onClick={() => {
@@ -130,7 +131,36 @@ export default function DashboardPage() {
               Logout
             </button>
           </div>
+
+          {/* Mobile hamburger button */}
+          <button
+            className="md:hidden p-2 hover:opacity-75"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          >
+            <i className={`lni ${mobileMenuOpen ? 'lni-close' : 'lni-menu'} text-xl`}></i>
+          </button>
         </div>
+
+        {/* Mobile menu dropdown */}
+        {mobileMenuOpen && (
+          <div className="md:hidden mt-4 pt-4 border-t border-white/20">
+            <div className="flex flex-col space-y-3">
+              <div className="flex items-center space-x-2 px-2">
+                <i className="lni lni-user"></i>
+                <span>{user?.username}</span>
+              </div>
+              <button
+                onClick={() => {
+                  logout();
+                  router.push('/login');
+                }}
+                className="bg-white text-primary px-4 py-2 rounded hover:bg-gray-100 text-center"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Main Content */}
