@@ -30,7 +30,7 @@ public class MqttConfig {
         options.setPassword(password.toCharArray());
         options.setCleanSession(true);
         options.setAutomaticReconnect(true);
-        options.setConnectionTimeout(30);
+        options.setConnectionTimeout(10);
         options.setKeepAliveInterval(60);
         return options;
     }

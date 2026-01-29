@@ -14,6 +14,7 @@ import org.eclipse.paho.client.mqttv3.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -53,23 +54,29 @@ public class MqttService implements MqttCallback {
 
     @PostConstruct
     public void init() {
-        try {
-            mqttClient.setCallback(this);
-            connect();
-        } catch (Exception e) {
-            logger.error("Failed to initialize MQTT connection", e);
-        }
+        mqttClient.setCallback(this);
+        // Connect asynchronously to not block startup
+        new Thread(() -> {
+            try {
+                Thread.sleep(2000); // Wait for app to fully start
+                connect();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }).start();
+        logger.info("MQTT service initialized, connecting in background...");
     }
 
     public void connect() {
         try {
             if (!mqttClient.isConnected()) {
+                logger.info("Connecting to MQTT broker...");
                 mqttClient.connect(mqttConnectOptions);
-                logger.info("Connected to MQTT broker");
+                logger.info("Connected to MQTT broker successfully!");
                 subscribeToTopics();
             }
         } catch (MqttException e) {
-            logger.error("Failed to connect to MQTT broker", e);
+            logger.warn("Failed to connect to MQTT broker: {}. Will retry on next operation.", e.getMessage());
         }
     }
 
