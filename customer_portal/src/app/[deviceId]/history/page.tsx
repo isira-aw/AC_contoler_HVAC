@@ -527,11 +527,11 @@ export default function HistoryPage() {
         )}
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* Predictions Panel - Always shows current data */}
-          <div className="lg:col-span-1">
-            <div className="card sticky top-6">
+      <main className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8">
+        <div className="flex flex-col lg:grid lg:grid-cols-3 gap-6">
+          {/* Predictions Panel - Shows first on mobile, left side on desktop */}
+          <div className="order-1 lg:order-1 lg:col-span-1">
+            <div className="card lg:sticky lg:top-24">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-semibold flex items-center">
                   <i className="lni lni-graph mr-2 text-primary"></i>
@@ -670,8 +670,8 @@ export default function HistoryPage() {
             </div>
           </div>
 
-          {/* Historical Data Section */}
-          <div className="lg:col-span-2 space-y-6">
+          {/* Historical Data Section - Shows second on mobile, right side on desktop */}
+          <div className="order-2 lg:order-2 lg:col-span-2 space-y-6">
             {/* Date Range Selection */}
             <div className="card">
               <h2 className="text-lg font-semibold mb-4 flex items-center">
