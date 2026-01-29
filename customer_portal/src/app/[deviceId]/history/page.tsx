@@ -7,13 +7,25 @@ import { customerApi } from '@/lib/api';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-interface TelemetryHistory {
+// Full telemetry data interface matching backend
+interface TelemetryData {
   timestamp: string;
+  // Environmental
   supplyAirTemp: number | null;
   returnAirTemp: number | null;
   roomTemp: number | null;
+  humidity: number | null;
+  outdoorTemp: number | null;
+  // Electrical
+  lineVoltage: number | null;
+  currentAmps: number | null;
   powerWatts: number | null;
   energyKwh: number | null;
+  // Mechanical
+  compressorOn: boolean | null;
+  fanSpeed: string | null;
+  airflowStatus: string | null;
+  filterCondition: string | null;
 }
 
 interface DeviceInfo {
@@ -35,13 +47,47 @@ interface SimplePrediction {
   efficiencyRating: string;
 }
 
+// Column definition for dynamic selection
+interface ColumnDefinition {
+  key: keyof TelemetryData;
+  label: string;
+  unit: string;
+  category: 'environmental' | 'electrical' | 'mechanical';
+  format: (value: any) => string;
+}
+
+// All available columns
+const ALL_COLUMNS: ColumnDefinition[] = [
+  // Environmental
+  { key: 'supplyAirTemp', label: 'Supply Air Temp', unit: '°C', category: 'environmental', format: (v) => v?.toFixed(1) || 'N/A' },
+  { key: 'returnAirTemp', label: 'Return Air Temp', unit: '°C', category: 'environmental', format: (v) => v?.toFixed(1) || 'N/A' },
+  { key: 'roomTemp', label: 'Room Temp', unit: '°C', category: 'environmental', format: (v) => v?.toFixed(1) || 'N/A' },
+  { key: 'humidity', label: 'Humidity', unit: '%', category: 'environmental', format: (v) => v?.toFixed(1) || 'N/A' },
+  { key: 'outdoorTemp', label: 'Outdoor Temp', unit: '°C', category: 'environmental', format: (v) => v?.toFixed(1) || 'N/A' },
+  // Electrical
+  { key: 'lineVoltage', label: 'Line Voltage', unit: 'V', category: 'electrical', format: (v) => v?.toFixed(1) || 'N/A' },
+  { key: 'currentAmps', label: 'Current', unit: 'A', category: 'electrical', format: (v) => v?.toFixed(2) || 'N/A' },
+  { key: 'powerWatts', label: 'Power', unit: 'W', category: 'electrical', format: (v) => v?.toFixed(1) || 'N/A' },
+  { key: 'energyKwh', label: 'Energy', unit: 'kWh', category: 'electrical', format: (v) => v?.toFixed(2) || 'N/A' },
+  // Mechanical
+  { key: 'compressorOn', label: 'Compressor', unit: '', category: 'mechanical', format: (v) => v === null ? 'N/A' : v ? 'ON' : 'OFF' },
+  { key: 'fanSpeed', label: 'Fan Speed', unit: '', category: 'mechanical', format: (v) => v || 'N/A' },
+  { key: 'airflowStatus', label: 'Airflow Status', unit: '', category: 'mechanical', format: (v) => v || 'N/A' },
+  { key: 'filterCondition', label: 'Filter Condition', unit: '', category: 'mechanical', format: (v) => v || 'N/A' },
+];
+
+// Default selected columns (Temperature & Energy only as per original requirement)
+const DEFAULT_SELECTED_COLUMNS: (keyof TelemetryData)[] = [
+  'supplyAirTemp', 'returnAirTemp', 'roomTemp', 'powerWatts', 'energyKwh'
+];
+
 export default function HistoryPage() {
   const router = useRouter();
   const params = useParams();
   const deviceId = params.deviceId as string;
   const { isAuthenticated, isLoading } = useAuth();
 
-  const [telemetryHistory, setTelemetryHistory] = useState<TelemetryHistory[]>([]);
+  const [telemetryHistory, setTelemetryHistory] = useState<TelemetryData[]>([]);
   const [deviceInfo, setDeviceInfo] = useState<DeviceInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
@@ -61,8 +107,46 @@ export default function HistoryPage() {
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
   const [selectAll, setSelectAll] = useState(false);
 
+  // Column selection state
+  const [selectedColumns, setSelectedColumns] = useState<Set<keyof TelemetryData>>(
+    new Set(DEFAULT_SELECTED_COLUMNS)
+  );
+  const [showColumnSelector, setShowColumnSelector] = useState(false);
+
+  // Get selected column definitions in order
+  const getSelectedColumnDefs = useCallback(() => {
+    return ALL_COLUMNS.filter(col => selectedColumns.has(col.key));
+  }, [selectedColumns]);
+
+  // Toggle column selection
+  const toggleColumn = (key: keyof TelemetryData) => {
+    const newSelected = new Set(selectedColumns);
+    if (newSelected.has(key)) {
+      newSelected.delete(key);
+    } else {
+      newSelected.add(key);
+    }
+    setSelectedColumns(newSelected);
+  };
+
+  // Select/deselect all columns in a category
+  const toggleCategory = (category: 'environmental' | 'electrical' | 'mechanical') => {
+    const categoryColumns = ALL_COLUMNS.filter(col => col.category === category);
+    const allSelected = categoryColumns.every(col => selectedColumns.has(col.key));
+
+    const newSelected = new Set(selectedColumns);
+    categoryColumns.forEach(col => {
+      if (allSelected) {
+        newSelected.delete(col.key);
+      } else {
+        newSelected.add(col.key);
+      }
+    });
+    setSelectedColumns(newSelected);
+  };
+
   // Calculate simple predictions using basic math (no ML/AI)
-  const calculatePredictions = useCallback((data: TelemetryHistory[]): SimplePrediction | null => {
+  const calculatePredictions = useCallback((data: TelemetryData[]): SimplePrediction | null => {
     if (data.length === 0) return null;
 
     // Filter valid temperature readings
@@ -77,7 +161,7 @@ export default function HistoryPage() {
     const minTemp = Math.min(...validTemps);
     const maxTemp = Math.max(...validTemps);
 
-    // Temperature trend using simple linear regression
+    // Temperature trend using simple comparison
     let trend = 'Stable';
     if (validTemps.length > 1) {
       const firstHalf = validTemps.slice(0, Math.floor(validTemps.length / 2));
@@ -124,7 +208,7 @@ export default function HistoryPage() {
 
     // Efficiency rating based on power fluctuation
     let efficiencyRating = 'Good';
-    if (validPower.length > 1) {
+    if (validPower.length > 1 && avgPower > 0) {
       const powerVariance = validPower.reduce((sum, val) => sum + Math.pow(val - avgPower, 2), 0) / validPower.length;
       const stdDev = Math.sqrt(powerVariance);
       const coefficientOfVariation = (stdDev / avgPower) * 100;
@@ -162,18 +246,29 @@ export default function HistoryPage() {
         location: statusRes.data.device.location,
       });
 
-      // Filter to only include temperature and energy data
-      const filteredData = (historyRes.data || []).map((item: any) => ({
+      // Map all telemetry data fields
+      const fullData: TelemetryData[] = (historyRes.data || []).map((item: any) => ({
         timestamp: item.timestamp,
+        // Environmental
         supplyAirTemp: item.supplyAirTemp,
         returnAirTemp: item.returnAirTemp,
         roomTemp: item.roomTemp,
+        humidity: item.humidity,
+        outdoorTemp: item.outdoorTemp,
+        // Electrical
+        lineVoltage: item.lineVoltage,
+        currentAmps: item.currentAmps,
         powerWatts: item.powerWatts,
         energyKwh: item.energyKwh,
+        // Mechanical
+        compressorOn: item.compressorOn,
+        fanSpeed: item.fanSpeed,
+        airflowStatus: item.airflowStatus,
+        filterCondition: item.filterCondition,
       }));
 
-      setTelemetryHistory(filteredData);
-      setPredictions(calculatePredictions(filteredData));
+      setTelemetryHistory(fullData);
+      setPredictions(calculatePredictions(fullData));
       setSelectedRows(new Set());
       setSelectAll(false);
     } catch (err: any) {
@@ -219,13 +314,19 @@ export default function HistoryPage() {
   };
 
   const exportToPDF = async () => {
+    if (selectedColumns.size === 0) {
+      alert('Please select at least one column to export.');
+      return;
+    }
+
     setExporting(true);
     try {
       const doc = new jsPDF();
+      const selectedColDefs = getSelectedColumnDefs();
 
       // Title
       doc.setFontSize(18);
-      doc.setTextColor(9, 65, 102); // Primary color
+      doc.setTextColor(9, 65, 102);
       doc.text('HVAC Historical Data Report', 14, 22);
 
       // Device info
@@ -236,71 +337,64 @@ export default function HistoryPage() {
       doc.text(`Period: ${new Date(fromDate).toLocaleString()} - ${new Date(toDate).toLocaleString()}`, 14, 49);
       doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 56);
 
-      // Get data to export (selected or all)
+      // Selected columns info
+      doc.setFontSize(10);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`Columns: ${selectedColDefs.map(c => c.label).join(', ')}`, 14, 63);
+
+      // Get data to export (selected rows or all)
       const dataToExport = selectedRows.size > 0
         ? telemetryHistory.filter((_, index) => selectedRows.has(index))
         : telemetryHistory;
 
-      // Table data
+      // Build table headers and data based on selected columns
+      const headers = ['Timestamp', ...selectedColDefs.map(col => `${col.label}${col.unit ? ` (${col.unit})` : ''}`)];
+
       const tableData = dataToExport.map(item => [
         new Date(item.timestamp).toLocaleString(),
-        item.supplyAirTemp?.toFixed(1) || 'N/A',
-        item.returnAirTemp?.toFixed(1) || 'N/A',
-        item.roomTemp?.toFixed(1) || 'N/A',
-        item.powerWatts?.toFixed(1) || 'N/A',
-        item.energyKwh?.toFixed(2) || 'N/A',
+        ...selectedColDefs.map(col => col.format(item[col.key]))
       ]);
 
       // Create table
       autoTable(doc, {
-        startY: 65,
-        head: [['Timestamp', 'Supply Temp (°C)', 'Return Temp (°C)', 'Room Temp (°C)', 'Power (W)', 'Energy (kWh)']],
+        startY: 70,
+        head: [headers],
         body: tableData,
         theme: 'striped',
         headStyles: {
           fillColor: [9, 65, 102],
           textColor: 255,
-          fontSize: 9,
+          fontSize: 8,
         },
         bodyStyles: {
-          fontSize: 8,
+          fontSize: 7,
         },
         alternateRowStyles: {
           fillColor: [245, 245, 245],
+        },
+        columnStyles: {
+          0: { cellWidth: 35 }, // Timestamp column
         },
       });
 
       // Add predictions summary if available
       if (predictions) {
-        const finalY = (doc as any).lastAutoTable.finalY || 65;
+        const finalY = (doc as any).lastAutoTable.finalY || 70;
 
-        doc.setFontSize(14);
-        doc.setTextColor(9, 65, 102);
-        doc.text('Predictions Summary', 14, finalY + 15);
-
-        doc.setFontSize(10);
-        doc.setTextColor(0, 0, 0);
-        const predictionLines = [
-          `Average Temperature: ${predictions.avgTemperature.toFixed(1)}°C`,
-          `Temperature Range: ${predictions.minTemperature.toFixed(1)}°C - ${predictions.maxTemperature.toFixed(1)}°C`,
-          `Temperature Trend: ${predictions.temperatureTrend}`,
-          `Average Power: ${predictions.avgPower.toFixed(1)} W`,
-          `Total Energy Used: ${predictions.totalEnergy.toFixed(2)} kWh`,
-          `Estimated Daily Energy: ${predictions.estimatedDailyEnergy.toFixed(2)} kWh`,
-          `Estimated Monthly Cost: $${predictions.estimatedMonthlyCost.toFixed(2)}`,
-          `Peak Power Time: ${predictions.peakPowerTime}`,
-          `Efficiency Rating: ${predictions.efficiencyRating}`,
-        ];
-
-        let yPos = finalY + 25;
-        predictionLines.forEach(line => {
-          if (yPos > 280) {
-            doc.addPage();
-            yPos = 20;
-          }
-          doc.text(line, 14, yPos);
-          yPos += 7;
-        });
+        // Check if we need a new page
+        if (finalY > 220) {
+          doc.addPage();
+          doc.setFontSize(14);
+          doc.setTextColor(9, 65, 102);
+          doc.text('Predictions Summary', 14, 20);
+          let yPos = 30;
+          addPredictionLines(doc, predictions, yPos);
+        } else {
+          doc.setFontSize(14);
+          doc.setTextColor(9, 65, 102);
+          doc.text('Predictions Summary', 14, finalY + 15);
+          addPredictionLines(doc, predictions, finalY + 25);
+        }
       }
 
       // Footer
@@ -324,8 +418,36 @@ export default function HistoryPage() {
     }
   };
 
+  // Helper function to add prediction lines to PDF
+  const addPredictionLines = (doc: jsPDF, pred: SimplePrediction, startY: number) => {
+    doc.setFontSize(10);
+    doc.setTextColor(0, 0, 0);
+    const predictionLines = [
+      `Average Temperature: ${pred.avgTemperature.toFixed(1)}°C`,
+      `Temperature Range: ${pred.minTemperature.toFixed(1)}°C - ${pred.maxTemperature.toFixed(1)}°C`,
+      `Temperature Trend: ${pred.temperatureTrend}`,
+      `Average Power: ${pred.avgPower.toFixed(1)} W`,
+      `Total Energy Used: ${pred.totalEnergy.toFixed(2)} kWh`,
+      `Estimated Daily Energy: ${pred.estimatedDailyEnergy.toFixed(2)} kWh`,
+      `Estimated Monthly Cost: $${pred.estimatedMonthlyCost.toFixed(2)}`,
+      `Peak Power Time: ${pred.peakPowerTime}`,
+      `Efficiency Rating: ${pred.efficiencyRating}`,
+    ];
+
+    let yPos = startY;
+    predictionLines.forEach(line => {
+      if (yPos > 280) {
+        doc.addPage();
+        yPos = 20;
+      }
+      doc.text(line, 14, yPos);
+      yPos += 7;
+    });
+  };
+
   const formatValue = (value: any, unit = '') => {
     if (value === null || value === undefined) return 'N/C';
+    if (typeof value === 'boolean') return value ? 'ON' : 'OFF';
     return `${typeof value === 'number' ? value.toFixed(1) : value}${unit}`;
   };
 
@@ -339,6 +461,8 @@ export default function HistoryPage() {
       </div>
     );
   }
+
+  const selectedColDefs = getSelectedColumnDefs();
 
   return (
     <div className="min-h-screen bg-background">
@@ -356,7 +480,7 @@ export default function HistoryPage() {
           </div>
           <button
             onClick={exportToPDF}
-            disabled={exporting || telemetryHistory.length === 0}
+            disabled={exporting || telemetryHistory.length === 0 || selectedColumns.size === 0}
             className="bg-white text-primary px-4 py-2 rounded-lg hover:bg-gray-100 flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {exporting ? (
@@ -527,6 +651,148 @@ export default function HistoryPage() {
 
           {/* Data Table */}
           <div className="lg:col-span-2">
+            {/* Column Selection Card */}
+            <div className="card mb-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-lg font-semibold flex items-center">
+                  <i className="lni lni-columns mr-2 text-primary"></i>
+                  Select Columns
+                  <span className="ml-2 text-sm font-normal text-gray-500">
+                    ({selectedColumns.size} of {ALL_COLUMNS.length} selected)
+                  </span>
+                </h2>
+                <button
+                  onClick={() => setShowColumnSelector(!showColumnSelector)}
+                  className="text-primary hover:text-primary/80 flex items-center text-sm"
+                >
+                  {showColumnSelector ? (
+                    <>
+                      <i className="lni lni-chevron-up mr-1"></i>
+                      Hide
+                    </>
+                  ) : (
+                    <>
+                      <i className="lni lni-chevron-down mr-1"></i>
+                      Expand
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {showColumnSelector && (
+                <div className="mt-4 grid md:grid-cols-3 gap-4">
+                  {/* Environmental */}
+                  <div className="border rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-semibold text-blue-700 flex items-center text-sm">
+                        <i className="lni lni-leaf mr-1"></i>
+                        Environmental
+                      </h3>
+                      <button
+                        onClick={() => toggleCategory('environmental')}
+                        className="text-xs text-blue-600 hover:underline"
+                      >
+                        {ALL_COLUMNS.filter(c => c.category === 'environmental').every(c => selectedColumns.has(c.key)) ? 'Deselect All' : 'Select All'}
+                      </button>
+                    </div>
+                    <div className="space-y-2">
+                      {ALL_COLUMNS.filter(col => col.category === 'environmental').map(col => (
+                        <label key={col.key} className="flex items-center text-sm cursor-pointer hover:bg-gray-50 p-1 rounded">
+                          <input
+                            type="checkbox"
+                            checked={selectedColumns.has(col.key)}
+                            onChange={() => toggleColumn(col.key)}
+                            className="rounded border-gray-300 text-primary focus:ring-primary mr-2"
+                          />
+                          <span>{col.label}</span>
+                          {col.unit && <span className="text-gray-400 ml-1">({col.unit})</span>}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Electrical */}
+                  <div className="border rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-semibold text-yellow-700 flex items-center text-sm">
+                        <i className="lni lni-bolt mr-1"></i>
+                        Electrical
+                      </h3>
+                      <button
+                        onClick={() => toggleCategory('electrical')}
+                        className="text-xs text-yellow-600 hover:underline"
+                      >
+                        {ALL_COLUMNS.filter(c => c.category === 'electrical').every(c => selectedColumns.has(c.key)) ? 'Deselect All' : 'Select All'}
+                      </button>
+                    </div>
+                    <div className="space-y-2">
+                      {ALL_COLUMNS.filter(col => col.category === 'electrical').map(col => (
+                        <label key={col.key} className="flex items-center text-sm cursor-pointer hover:bg-gray-50 p-1 rounded">
+                          <input
+                            type="checkbox"
+                            checked={selectedColumns.has(col.key)}
+                            onChange={() => toggleColumn(col.key)}
+                            className="rounded border-gray-300 text-primary focus:ring-primary mr-2"
+                          />
+                          <span>{col.label}</span>
+                          {col.unit && <span className="text-gray-400 ml-1">({col.unit})</span>}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Mechanical */}
+                  <div className="border rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-semibold text-green-700 flex items-center text-sm">
+                        <i className="lni lni-cog mr-1"></i>
+                        Mechanical
+                      </h3>
+                      <button
+                        onClick={() => toggleCategory('mechanical')}
+                        className="text-xs text-green-600 hover:underline"
+                      >
+                        {ALL_COLUMNS.filter(c => c.category === 'mechanical').every(c => selectedColumns.has(c.key)) ? 'Deselect All' : 'Select All'}
+                      </button>
+                    </div>
+                    <div className="space-y-2">
+                      {ALL_COLUMNS.filter(col => col.category === 'mechanical').map(col => (
+                        <label key={col.key} className="flex items-center text-sm cursor-pointer hover:bg-gray-50 p-1 rounded">
+                          <input
+                            type="checkbox"
+                            checked={selectedColumns.has(col.key)}
+                            onChange={() => toggleColumn(col.key)}
+                            className="rounded border-gray-300 text-primary focus:ring-primary mr-2"
+                          />
+                          <span>{col.label}</span>
+                          {col.unit && <span className="text-gray-400 ml-1">({col.unit})</span>}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Quick summary of selected columns when collapsed */}
+              {!showColumnSelector && selectedColumns.size > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {selectedColDefs.map(col => (
+                    <span
+                      key={col.key}
+                      className={`text-xs px-2 py-1 rounded-full ${
+                        col.category === 'environmental' ? 'bg-blue-100 text-blue-700' :
+                        col.category === 'electrical' ? 'bg-yellow-100 text-yellow-700' :
+                        'bg-green-100 text-green-700'
+                      }`}
+                    >
+                      {col.label}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Data Table Card */}
             <div className="card">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-semibold flex items-center">
@@ -538,17 +804,22 @@ export default function HistoryPage() {
                 </h2>
                 {selectedRows.size > 0 && (
                   <span className="text-sm text-primary">
-                    {selectedRows.size} selected for export
+                    {selectedRows.size} rows selected for export
                   </span>
                 )}
               </div>
 
-              {telemetryHistory.length > 0 ? (
+              {selectedColumns.size === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  <i className="lni lni-warning text-4xl mb-2"></i>
+                  <p>Please select at least one column to display</p>
+                </div>
+              ) : telemetryHistory.length > 0 ? (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="bg-gray-50">
-                        <th className="px-3 py-3 text-left">
+                        <th className="px-3 py-3 text-left sticky left-0 bg-gray-50">
                           <input
                             type="checkbox"
                             checked={selectAll}
@@ -556,12 +827,13 @@ export default function HistoryPage() {
                             className="rounded border-gray-300 text-primary focus:ring-primary"
                           />
                         </th>
-                        <th className="px-3 py-3 text-left font-semibold text-gray-700">Timestamp</th>
-                        <th className="px-3 py-3 text-right font-semibold text-gray-700">Supply Temp</th>
-                        <th className="px-3 py-3 text-right font-semibold text-gray-700">Return Temp</th>
-                        <th className="px-3 py-3 text-right font-semibold text-gray-700">Room Temp</th>
-                        <th className="px-3 py-3 text-right font-semibold text-gray-700">Power</th>
-                        <th className="px-3 py-3 text-right font-semibold text-gray-700">Energy</th>
+                        <th className="px-3 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">Timestamp</th>
+                        {selectedColDefs.map(col => (
+                          <th key={col.key} className="px-3 py-3 text-right font-semibold text-gray-700 whitespace-nowrap">
+                            {col.label}
+                            {col.unit && <span className="text-gray-400 font-normal ml-1">({col.unit})</span>}
+                          </th>
+                        ))}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -571,7 +843,7 @@ export default function HistoryPage() {
                           className={`hover:bg-gray-50 cursor-pointer ${selectedRows.has(index) ? 'bg-primary/5' : ''}`}
                           onClick={() => handleRowSelect(index)}
                         >
-                          <td className="px-3 py-2">
+                          <td className="px-3 py-2 sticky left-0 bg-white">
                             <input
                               type="checkbox"
                               checked={selectedRows.has(index)}
@@ -580,24 +852,14 @@ export default function HistoryPage() {
                               className="rounded border-gray-300 text-primary focus:ring-primary"
                             />
                           </td>
-                          <td className="px-3 py-2 text-gray-600">
+                          <td className="px-3 py-2 text-gray-600 whitespace-nowrap">
                             {new Date(item.timestamp).toLocaleString()}
                           </td>
-                          <td className="px-3 py-2 text-right font-medium">
-                            {formatValue(item.supplyAirTemp, '°C')}
-                          </td>
-                          <td className="px-3 py-2 text-right font-medium">
-                            {formatValue(item.returnAirTemp, '°C')}
-                          </td>
-                          <td className="px-3 py-2 text-right font-medium">
-                            {formatValue(item.roomTemp, '°C')}
-                          </td>
-                          <td className="px-3 py-2 text-right font-medium">
-                            {formatValue(item.powerWatts, ' W')}
-                          </td>
-                          <td className="px-3 py-2 text-right font-medium">
-                            {formatValue(item.energyKwh, ' kWh')}
-                          </td>
+                          {selectedColDefs.map(col => (
+                            <td key={col.key} className="px-3 py-2 text-right font-medium whitespace-nowrap">
+                              {col.format(item[col.key])}
+                            </td>
+                          ))}
                         </tr>
                       ))}
                     </tbody>
