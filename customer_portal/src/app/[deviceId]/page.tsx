@@ -166,7 +166,7 @@ export default function DeviceDashboard() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-primary text-white py-4 px-6 shadow-lg">
+      <header className="bg-primary text-white py-4 px-6 shadow-lg sticky top-0 z-50">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="flex items-center space-x-4">
             <button onClick={() => router.push('/dashboard')} className="hover:opacity-75">
