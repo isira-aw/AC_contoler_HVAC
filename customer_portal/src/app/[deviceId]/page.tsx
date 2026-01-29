@@ -160,7 +160,7 @@ export default function DeviceDashboard() {
     );
   }
 
-  const telemetry = status?.telemetry || {};
+  const telemetry = status?.telemetry || {} as DeviceStatus['telemetry'];
   const device = status?.device;
 
   return (
