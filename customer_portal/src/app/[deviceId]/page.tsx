@@ -394,6 +394,17 @@ export default function DeviceDashboard() {
 
           {/* Middle Column - Charts */}
           <div className="lg:col-span-2 space-y-6">
+            {/* Historical Data Button */}
+            <div className="flex justify-end">
+              <button
+                onClick={() => router.push(`/${deviceId}/history`)}
+                className="btn-primary flex items-center space-x-2"
+              >
+                <i className="lni lni-files"></i>
+                <span>View Historical Data & Predictions</span>
+              </button>
+            </div>
+
             {/* Temperature Chart */}
             <div className="card">
               <h2 className="text-lg font-semibold mb-4">Temperature History</h2>
