@@ -3,8 +3,17 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
+import { jwtDecode } from 'jwt-decode';
 import { authApi } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
+
+interface GoogleJwtPayload {
+  sub: string;
+  email: string;
+  name: string;
+  picture?: string;
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -53,10 +62,48 @@ export default function LoginPage() {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    // For MVP, this is a placeholder. In production, use @react-oauth/google
-    alert('Google login requires OAuth2 configuration. Please use username/password for now.');
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
+    if (!credentialResponse.credential) {
+      setError('Google login failed: No credentials received');
+      return;
+    }
+
+    setGoogleLoading(true);
+    setError('');
+
+    try {
+      // Decode the JWT token from Google to get user info
+      const decoded = jwtDecode<GoogleJwtPayload>(credentialResponse.credential);
+
+      // Send to backend
+      const response = await authApi.googleLogin({
+        googleId: decoded.sub,
+        email: decoded.email,
+        name: decoded.name,
+      });
+
+      // Login with the token from backend
+      login(response.data.token, {
+        username: response.data.username,
+        email: response.data.email,
+        role: response.data.role,
+      });
+
+      router.push('/dashboard');
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Google login failed');
+    } finally {
+      setGoogleLoading(false);
+    }
   };
+
+  const handleGoogleError = () => {
+    setError('Google login failed. Please try again or use username/password.');
+  };
+
+  const isGoogleConfigured = !!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
@@ -122,14 +169,35 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={handleGoogleLogin}
-              className="btn-secondary w-full flex items-center justify-center space-x-2"
-            >
-              <i className="lni lni-google"></i>
-              <span>Continue with Google</span>
-            </button>
+            {isGoogleConfigured ? (
+              <div className="flex justify-center">
+                {googleLoading ? (
+                  <div className="btn-secondary w-full flex items-center justify-center">
+                    <span>Signing in with Google...</span>
+                  </div>
+                ) : (
+                  <GoogleLogin
+                    onSuccess={handleGoogleSuccess}
+                    onError={handleGoogleError}
+                    useOneTap
+                    theme="outline"
+                    size="large"
+                    width="100%"
+                    text="continue_with"
+                  />
+                )}
+              </div>
+            ) : (
+              <button
+                type="button"
+                disabled
+                className="btn-secondary w-full flex items-center justify-center space-x-2 opacity-50 cursor-not-allowed"
+                title="Google OAuth2 is not configured"
+              >
+                <i className="lni lni-google"></i>
+                <span>Google Sign-In Not Configured</span>
+              </button>
+            )}
           </form>
         ) : (
           <form onSubmit={handleVerifySubmit}>
