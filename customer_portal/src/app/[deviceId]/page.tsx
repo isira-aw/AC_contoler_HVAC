@@ -80,6 +80,14 @@ export default function DeviceDashboard() {
   const [temperatureSetpoint, setTemperatureSetpoint] = useState(24);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  // Pending changes states for Control Panel
+  const [pendingSystemOn, setPendingSystemOn] = useState<boolean | null>(null);
+  const [pendingMode, setPendingMode] = useState<string | null>(null);
+  const [pendingFanSpeed, setPendingFanSpeed] = useState<string | null>(null);
+  const [pendingTempSetpoint, setPendingTempSetpoint] = useState<number | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [updateMessage, setUpdateMessage] = useState('');
+
   const loadData = useCallback(async () => {
     try {
       const [statusRes, telemetryRes, faultsRes, predictionsRes] = await Promise.all([
@@ -143,6 +151,89 @@ export default function DeviceDashboard() {
     } finally {
       setControlLoading(false);
     }
+  };
+
+  // Check if there are any pending changes
+  const hasPendingChanges = pendingSystemOn !== null || pendingMode !== null ||
+    pendingFanSpeed !== null || pendingTempSetpoint !== null;
+
+  // Get display values (pending or current)
+  const displaySystemOn = pendingSystemOn !== null ? pendingSystemOn : systemOn;
+  const displayMode = pendingMode !== null ? pendingMode : mode;
+  const displayFanSpeed = pendingFanSpeed !== null ? pendingFanSpeed : fanSpeed;
+  const displayTempSetpoint = pendingTempSetpoint !== null ? pendingTempSetpoint : temperatureSetpoint;
+
+  // Handle pending change for each control
+  const setPendingChange = (type: string, value: any) => {
+    switch (type) {
+      case 'systemOn':
+        setPendingSystemOn(value !== systemOn ? value : null);
+        break;
+      case 'mode':
+        setPendingMode(value !== mode ? value : null);
+        break;
+      case 'fanSpeed':
+        setPendingFanSpeed(value !== fanSpeed ? value : null);
+        break;
+      case 'temperatureSetpoint':
+        setPendingTempSetpoint(value !== temperatureSetpoint ? value : null);
+        break;
+    }
+  };
+
+  // Discard all pending changes
+  const discardChanges = () => {
+    setPendingSystemOn(null);
+    setPendingMode(null);
+    setPendingFanSpeed(null);
+    setPendingTempSetpoint(null);
+  };
+
+  // Apply pending changes with loading animation
+  const applyChanges = async () => {
+    setIsUpdating(true);
+    setUpdateMessage('Updating the changes');
+
+    // First 3 seconds - "Updating the changes"
+    await new Promise(resolve => setTimeout(resolve, 8000));
+
+    // Next 7 seconds - "Updating the database"
+    setUpdateMessage('Updating the database');
+
+    // Build the updates object
+    const updates: {
+      systemOn?: boolean;
+      mode?: string;
+      fanSpeed?: string;
+      temperatureSetpoint?: number;
+    } = {};
+
+    if (pendingSystemOn !== null) updates.systemOn = pendingSystemOn;
+    if (pendingMode !== null) updates.mode = pendingMode;
+    if (pendingFanSpeed !== null) updates.fanSpeed = pendingFanSpeed;
+    if (pendingTempSetpoint !== null) updates.temperatureSetpoint = pendingTempSetpoint;
+
+    // Wait remaining 7 seconds while making API call
+    const [apiResult] = await Promise.all([
+      customerApi.sendControl(deviceId, updates).then(() => true).catch((err: any) => {
+        alert(err.response?.data?.error || 'Failed to send control command');
+        return false;
+      }),
+      new Promise(resolve => setTimeout(resolve, 7000))
+    ]);
+
+    if (apiResult) {
+      // Update local state on success
+      if (pendingSystemOn !== null) setSystemOn(pendingSystemOn);
+      if (pendingMode !== null) setMode(pendingMode);
+      if (pendingFanSpeed !== null) setFanSpeed(pendingFanSpeed);
+      if (pendingTempSetpoint !== null) setTemperatureSetpoint(pendingTempSetpoint);
+    }
+
+    // Clear pending changes
+    discardChanges();
+    setIsUpdating(false);
+    setUpdateMessage('');
   };
 
   const formatValue = (value: any, unit = '') => {
@@ -295,7 +386,18 @@ export default function DeviceDashboard() {
           {/* Left Column - Controls & Environmental */}
           <div className="space-y-6">
             {/* Control Panel */}
-            <div className="card">
+            <div className="card relative overflow-hidden">
+              {/* Loading Overlay */}
+              {isUpdating && (
+                <div className="absolute inset-0 bg-white/90 flex flex-col items-center justify-center z-10 rounded-xl">
+                  <div className="relative w-16 h-16 mb-4">
+                    <div className="absolute inset-0 border-4 border-primary/20 rounded-full"></div>
+                    <div className="absolute inset-0 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                  <p className="text-lg font-medium text-gray-700 animate-pulse">{updateMessage}</p>
+                </div>
+              )}
+
               <h2 className="text-lg font-semibold mb-4 flex items-center">
                 <i className="lni lni-cog mr-2 text-primary"></i>
                 Control Panel
@@ -306,11 +408,11 @@ export default function DeviceDashboard() {
                 <div className="flex justify-between items-center">
                   <span>System Power</span>
                   <button
-                    onClick={() => sendControl({ systemOn: !systemOn })}
-                    disabled={controlLoading}
-                    className={`w-16 h-8 rounded-full relative ${systemOn ? 'bg-green-500' : 'bg-gray-300'}`}
+                    onClick={() => setPendingChange('systemOn', !displaySystemOn)}
+                    disabled={controlLoading || isUpdating}
+                    className={`w-16 h-8 rounded-full relative transition-colors ${displaySystemOn ? 'bg-green-500' : 'bg-gray-300'}`}
                   >
-                    <div className={`w-6 h-6 bg-white rounded-full absolute top-1 transition-all ${systemOn ? 'right-1' : 'left-1'}`}></div>
+                    <div className={`w-6 h-6 bg-white rounded-full absolute top-1 transition-all ${displaySystemOn ? 'right-1' : 'left-1'}`}></div>
                   </button>
                 </div>
 
@@ -321,9 +423,9 @@ export default function DeviceDashboard() {
                     {['COOLING', 'HEATING'].map((m) => (
                       <button
                         key={m}
-                        onClick={() => sendControl({ mode: m })}
-                        disabled={controlLoading}
-                        className={`flex-1 py-2 rounded-lg ${mode === m ? 'bg-primary text-white' : 'bg-gray-200'}`}
+                        onClick={() => setPendingChange('mode', m)}
+                        disabled={controlLoading || isUpdating}
+                        className={`flex-1 py-2 rounded-lg transition-colors ${displayMode === m ? 'bg-primary text-white' : 'bg-gray-200'}`}
                       >
                         {m === 'COOLING' ? <i className="lni lni-snowflake"></i> : <i className="lni lni-sun"></i>}
                         <span className="ml-1">{m}</span>
@@ -339,9 +441,9 @@ export default function DeviceDashboard() {
                     {['LOW', 'MED', 'HIGH'].map((speed) => (
                       <button
                         key={speed}
-                        onClick={() => sendControl({ fanSpeed: speed })}
-                        disabled={controlLoading}
-                        className={`flex-1 py-2 rounded-lg ${fanSpeed === speed ? 'bg-primary text-white' : 'bg-gray-200'}`}
+                        onClick={() => setPendingChange('fanSpeed', speed)}
+                        disabled={controlLoading || isUpdating}
+                        className={`flex-1 py-2 rounded-lg transition-colors ${displayFanSpeed === speed ? 'bg-primary text-white' : 'bg-gray-200'}`}
                       >
                         {speed}
                       </button>
@@ -352,12 +454,12 @@ export default function DeviceDashboard() {
                 {/* Temperature Setpoint */}
                 <div>
                   <label className="block text-sm text-gray-600 mb-1">
-                    Temperature Setpoint: {temperatureSetpoint}°C
+                    Temperature Setpoint: {displayTempSetpoint}°C
                   </label>
                   <div className="flex items-center space-x-4">
                     <button
-                      onClick={() => sendControl({ temperatureSetpoint: temperatureSetpoint - 1 })}
-                      disabled={controlLoading || temperatureSetpoint <= 16}
+                      onClick={() => setPendingChange('temperatureSetpoint', displayTempSetpoint - 1)}
+                      disabled={controlLoading || isUpdating || displayTempSetpoint <= 16}
                       className="btn-secondary w-10 h-10"
                     >
                       -
@@ -366,20 +468,42 @@ export default function DeviceDashboard() {
                       type="range"
                       min="16"
                       max="30"
-                      value={temperatureSetpoint}
-                      onChange={(e) => setTemperatureSetpoint(Number(e.target.value))}
-                      onMouseUp={() => sendControl({ temperatureSetpoint })}
-                      className="flex-1"
+                      value={displayTempSetpoint}
+                      onChange={(e) => setPendingChange('temperatureSetpoint', Number(e.target.value))}
+                      disabled={isUpdating}
+                      className="
+                        flex-1
+                        accent-[#094166]
+                        cursor-pointer
+                      "
                     />
                     <button
-                      onClick={() => sendControl({ temperatureSetpoint: temperatureSetpoint + 1 })}
-                      disabled={controlLoading || temperatureSetpoint >= 30}
+                      onClick={() => setPendingChange('temperatureSetpoint', displayTempSetpoint + 1)}
+                      disabled={controlLoading || isUpdating || displayTempSetpoint >= 30}
                       className="btn-secondary w-10 h-10"
                     >
                       +
                     </button>
                   </div>
                 </div>
+
+                {/* Okay and Discard Buttons */}
+                {hasPendingChanges && !isUpdating && (
+                  <div className="flex space-x-3 pt-4 border-t border-gray-200">
+                    <button
+                      onClick={discardChanges}
+                      className="flex-1 py-2 px-4 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors font-medium"
+                    >
+                      Discard Changes
+                    </button>
+                    <button
+                      onClick={applyChanges}
+                      className="flex-1 py-2 px-4 bg-primary hover:bg-primary/90 text-white rounded-lg transition-colors font-medium"
+                    >
+                      Okay
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -560,13 +684,12 @@ export default function DeviceDashboard() {
                     {faults.map((fault) => (
                       <div
                         key={fault.id}
-                        className={`p-2 rounded text-sm ${
-                          fault.severity === 'HIGH'
-                            ? 'bg-red-100 text-red-800'
-                            : fault.severity === 'MEDIUM'
+                        className={`p-2 rounded text-sm ${fault.severity === 'HIGH'
+                          ? 'bg-red-100 text-red-800'
+                          : fault.severity === 'MEDIUM'
                             ? 'bg-yellow-100 text-yellow-800'
                             : 'bg-blue-100 text-blue-800'
-                        }`}
+                          }`}
                       >
                         <div className="font-medium">{fault.faultType}</div>
                         <div className="text-xs opacity-75">{fault.description}</div>
