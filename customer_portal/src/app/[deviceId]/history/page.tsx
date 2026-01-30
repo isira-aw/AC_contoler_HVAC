@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/auth';
 import { customerApi } from '@/lib/api';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import Link from 'next/link';
 
 // Full telemetry data interface matching backend
 interface TelemetryData {
@@ -436,18 +437,11 @@ export default function HistoryPage() {
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           {/* Left side - Navigation */}
           <div className="flex items-center space-x-3 md:space-x-4">
-            <button onClick={() => router.push('/')} className="hover:opacity-75" title="Home">
-              <i className="lni lni-home text-xl"></i>
-            </button>
-            <button onClick={() => router.push('/dashboard')} className="hover:opacity-75 hidden sm:flex items-center space-x-1">
-              <span className="text-sm font-medium">Dashboard</span>
-            </button>
-            <button onClick={() => router.push('/dashboard')} className="hover:opacity-75 sm:hidden" title="Dashboard">
-              <i className="lni lni-dashboard text-xl"></i>
-            </button>
             <button onClick={() => router.push(`/${deviceId}`)} className="hover:opacity-75" title="Back to Device">
               <i className="lni lni-arrow-left text-xl"></i>
             </button>
+            <span className="text-lg md:text-xl font-bold">Smart HVAC</span>
+
             <div className="border-l border-white/30 pl-3 md:pl-4 hidden sm:block">
               <h1 className="text-base md:text-xl font-bold">Historical Data</h1>
               <p className="text-xs md:text-sm opacity-75">{deviceInfo?.deviceName || deviceId}</p>
@@ -456,10 +450,14 @@ export default function HistoryPage() {
 
           {/* Desktop menu */}
           <div className="hidden md:flex items-center space-x-4">
+            <Link href="/dashboard" className="px-2 py-2 hover:bg-white/10 rounded text-center">
+              Dashboard
+            </Link>
             <div className={`flex items-center space-x-2 px-3 py-1 rounded-full ${deviceInfo?.online ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
               <div className={`w-2 h-2 rounded-full ${deviceInfo?.online ? 'bg-green-400' : 'bg-red-400'}`}></div>
               <span className="text-sm">{deviceInfo?.online ? 'Online' : 'Offline'}</span>
             </div>
+
             <button
               onClick={exportToPDF}
               disabled={exporting || telemetryHistory.length === 0 || selectedColumns.size === 0}
@@ -477,6 +475,9 @@ export default function HistoryPage() {
                 </>
               )}
             </button>
+            <Link href="/" className=" text-white px-4 py-2 rounded-lg hover:bg-white/10">
+              <i className="lni lni-home text-xl md:text-2xl"></i>
+            </Link>
           </div>
 
           {/* Mobile - Status and hamburger */}
@@ -505,6 +506,9 @@ export default function HistoryPage() {
                   {deviceInfo?.online ? 'Online' : 'Offline'}
                 </span>
               </div>
+              <Link href="/dashboard" className="px-2 py-2 hover:bg-white/10 rounded text-center">
+                Dashboard
+              </Link>
               <button
                 onClick={exportToPDF}
                 disabled={exporting || telemetryHistory.length === 0 || selectedColumns.size === 0}
@@ -522,6 +526,9 @@ export default function HistoryPage() {
                   </>
                 )}
               </button>
+              <Link href="/" className="px-2 py-2 hover:bg-white/10 rounded text-center">
+                <i className="lni lni-home text-xl md:text-2xl"></i>
+              </Link>
             </div>
           </div>
         )}
@@ -641,11 +648,10 @@ export default function HistoryPage() {
                       <i className="lni lni-cog mr-2 text-orange-500"></i>
                       Maintenance
                     </h3>
-                    <div className={`rounded-lg p-3 ${
-                      predictions.efficiencyScore >= 70 ? 'bg-green-50 border border-green-200' :
-                      predictions.efficiencyScore >= 50 ? 'bg-yellow-50 border border-yellow-200' :
-                      'bg-red-50 border border-red-200'
-                    }`}>
+                    <div className={`rounded-lg p-3 ${predictions.efficiencyScore >= 70 ? 'bg-green-50 border border-green-200' :
+                        predictions.efficiencyScore >= 50 ? 'bg-yellow-50 border border-yellow-200' :
+                          'bg-red-50 border border-red-200'
+                      }`}>
                       <p className="text-sm">{predictions.maintenanceRecommendation}</p>
                     </div>
                   </div>
@@ -846,11 +852,10 @@ export default function HistoryPage() {
                   {selectedColDefs.map(col => (
                     <span
                       key={col.key}
-                      className={`text-xs px-2 py-1 rounded-full ${
-                        col.category === 'environmental' ? 'bg-blue-100 text-blue-700' :
-                        col.category === 'electrical' ? 'bg-yellow-100 text-yellow-700' :
-                        'bg-green-100 text-green-700'
-                      }`}
+                      className={`text-xs px-2 py-1 rounded-full ${col.category === 'environmental' ? 'bg-blue-100 text-blue-700' :
+                          col.category === 'electrical' ? 'bg-yellow-100 text-yellow-700' :
+                            'bg-green-100 text-green-700'
+                        }`}
                     >
                       {col.label}
                     </span>
