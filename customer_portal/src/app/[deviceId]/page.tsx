@@ -195,7 +195,7 @@ export default function DeviceDashboard() {
     setUpdateMessage('Updating the changes');
 
     // First 3 seconds - "Updating the changes"
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    await new Promise(resolve => setTimeout(resolve, 8000));
 
     // Next 7 seconds - "Updating the database"
     setUpdateMessage('Updating the database');
@@ -471,7 +471,11 @@ export default function DeviceDashboard() {
                       value={displayTempSetpoint}
                       onChange={(e) => setPendingChange('temperatureSetpoint', Number(e.target.value))}
                       disabled={isUpdating}
-                      className="flex-1"
+                      className="
+                        flex-1
+                        accent-[#094166]
+                        cursor-pointer
+                      "
                     />
                     <button
                       onClick={() => setPendingChange('temperatureSetpoint', displayTempSetpoint + 1)}
@@ -680,13 +684,12 @@ export default function DeviceDashboard() {
                     {faults.map((fault) => (
                       <div
                         key={fault.id}
-                        className={`p-2 rounded text-sm ${
-                          fault.severity === 'HIGH'
-                            ? 'bg-red-100 text-red-800'
-                            : fault.severity === 'MEDIUM'
+                        className={`p-2 rounded text-sm ${fault.severity === 'HIGH'
+                          ? 'bg-red-100 text-red-800'
+                          : fault.severity === 'MEDIUM'
                             ? 'bg-yellow-100 text-yellow-800'
                             : 'bg-blue-100 text-blue-800'
-                        }`}
+                          }`}
                       >
                         <div className="font-medium">{fault.faultType}</div>
                         <div className="text-xs opacity-75">{fault.description}</div>
