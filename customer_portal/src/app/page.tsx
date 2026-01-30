@@ -2,6 +2,8 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Link from 'next/link';
+import { useAuth } from '@/lib/auth';
 
 const steps = [
   {
@@ -43,6 +45,7 @@ export default function HomePage() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
+  const { isAuthenticated, isLoading, logout, user } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 50);
@@ -203,26 +206,118 @@ export default function HomePage() {
             }`}
           style={{ backgroundColor: 'rgba(9, 65, 102, 0.95)', backdropFilter: 'blur(12px)' }}
         >
-          <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
-            <a href="#" className="flex items-center gap-2 text-white">
+          <div className="max-w-7xl mx-auto px-4 md:px-6 flex justify-between items-center">
+            {/* Logo */}
+            <Link href="/" className="flex items-center gap-2 text-white">
               <CloudIcon className="w-7 h-7" />
-              <span className="text-xl font-bold tracking-tight">Smart HVAC</span>
-            </a>
+              <span className="text-lg md:text-xl font-bold tracking-tight">Smart HVAC</span>
+            </Link>
 
-            <nav className="hidden lg:flex items-center gap-1">
+            {/* Desktop menu */}
+            <div className="hidden md:flex items-center space-x-2">
+              {/* Navigation Section Buttons */}
               {['What It Is', 'Features', 'How It Works', 'About Us', 'FAQ'].map((item) => (
                 <button
                   key={item}
                   onClick={() => scrollToSection(item.toLowerCase().replace(/\s+/g, '-'))}
-                  className="text-white/90 hover:text-white hover:bg-white/10 px-4 py-2 rounded-lg transition-all text-sm font-medium"
+                  className="text-white/80 hover:text-white hover:bg-white/10 px-3 py-2 rounded-lg transition-all text-sm font-medium"
                 >
                   {item}
                 </button>
               ))}
-            </nav>
 
 
+              <div className="border-l border-white ">
+
+                {/* Dashboard Link */}
+                <Link href="/dashboard" className="text-white hover:bg-white/10 px-3 py-2 rounded text-sm font-medium">
+                  Dashboard
+                </Link>
+
+                {/* User or Login */}
+                {user ? (
+                  <span className="px-3 py-2 font-medium text-white">
+                    {user.username}
+                  </span>
+                ) : (
+                  <Link
+                    href="/login"
+                    className="text-white hover:bg-white/10 px-3 py-2 rounded text-sm font-medium"
+                  >
+                    Login
+                  </Link>
+                )}
+
+                {/* Register Button */}
+                <Link href="/register" className="bg-white text-primary px-4 py-2 rounded-lg hover:bg-gray-100 font-medium">
+                  Register
+                </Link>
+
+                {/* Home Icon */}
+                <Link href="/" className="bg-white/20 text-white px-4 py-2 rounded-lg hover:bg-white/30 ml-2">
+                  <i className="lni lni-home text-xl"></i>
+                </Link>
+              </div>
+            </div>
+
+            {/* Mobile hamburger button */}
+            <button
+              className="md:hidden p-2 hover:opacity-75 text-white"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              <i className={`lni ${mobileMenuOpen ? 'lni-close' : 'lni-menu'} text-xl`}></i>
+            </button>
           </div>
+
+          {/* Mobile menu dropdown */}
+          {mobileMenuOpen && (
+            <div className="md:hidden mt-4 pt-4 border-t border-white/20 px-4">
+              <div className="flex flex-col space-y-3">
+                {/* Navigation Section Buttons */}
+                {['What It Is', 'Features', 'How It Works', 'About Us', 'FAQ'].map((item) => (
+                  <button
+                    key={item}
+                    onClick={() => {
+                      scrollToSection(item.toLowerCase().replace(/\s+/g, '-'));
+                      setMobileMenuOpen(false);
+                    }}
+                    className="text-white/90 hover:bg-white/10 px-3 py-2 rounded text-left font-medium"
+                  >
+                    {item}
+                  </button>
+                ))}
+
+                {/* Dashboard Link */}
+                <Link href="/dashboard" className="px-3 py-2 hover:bg-white/10 rounded text-center">
+                  Dashboard
+                </Link>
+
+                {/* User or Login */}
+                {user ? (
+                  <span className="px-3 py-2 font-medium text-center">
+                    {user.username}
+                  </span>
+                ) : (
+                  <Link
+                    href="/login"
+                    className="hover:bg-white/10 px-3 py-2 rounded text-center"
+                  >
+                    Login
+                  </Link>
+                )}
+
+                {/* Register Button */}
+                <Link href="/register" className="bg-white text-primary px-4 py-2 rounded-lg hover:bg-gray-100 text-center">
+                  Register
+                </Link>
+
+                {/* Home Icon */}
+                <Link href="/" className="px-3 py-2 bg-white/10 rounded text-center">
+                  <i className="lni lni-home text-xl md:text-2xl"></i>
+                </Link>
+              </div>
+            </div>
+          )}
         </header>
 
         {/* SECTION 1: HERO */}
@@ -439,7 +534,7 @@ export default function HomePage() {
             </div>
           </div>
         </section>
-      
+
 
         {/* SECTION 6: HOW IT WORKS */}
         <section id="how-it-works" className="py-24 px-6 bg-slate-50">
