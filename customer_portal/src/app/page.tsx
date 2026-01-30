@@ -1,9 +1,14 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/auth';
+
 import { useState } from 'react';
 import Link from 'next/link';
 
 export default function HomePage() {
+  const { user, isAuthenticated, isLoading, logout } = useAuth();
+  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
@@ -11,19 +16,31 @@ export default function HomePage() {
       {/* Header */}
       <header className="bg-primary text-white py-4 px-4 md:px-6 shadow-lg sticky top-0 z-50">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
-          {/* Left side - Home icon and branding */}
-          <Link href="/" className="flex items-center space-x-2 hover:opacity-80">
-            <i className="lni lni-home text-xl md:text-2xl"></i>
-            <span className="text-lg md:text-xl font-bold">Smart HVAC</span>
-          </Link>
+          <span className="text-lg md:text-xl font-bold">Smart HVAC</span>
 
           {/* Desktop menu */}
           <div className="hidden md:flex items-center space-x-4">
-            <Link href="/login" className="hover:underline">
-              Login
+            <Link href="/dashboard" className="hover:bg-white/10 px-2 py-2 rounded text-center">
+              Dashboard
             </Link>
+            {user ? (
+              <span className="px-2 py-2 font-medium">
+                {user.username}
+              </span>
+            ) : (
+              <Link
+                href="/login"
+                className="hover:bg-white/10 px-2 py-2 rounded text-center"
+              >
+                Login
+              </Link>
+            )}
+
             <Link href="/register" className="bg-white text-primary px-4 py-2 rounded-lg hover:bg-gray-100">
               Register
+            </Link>
+            <Link href="/" className="bg-white/20 text-white px-4 py-2 rounded-lg">
+              <i className="lni lni-home text-xl md:text-2xl"></i>
             </Link>
           </div>
 
@@ -40,11 +57,27 @@ export default function HomePage() {
         {mobileMenuOpen && (
           <div className="md:hidden mt-4 pt-4 border-t border-white/20">
             <div className="flex flex-col space-y-3">
-              <Link href="/login" className="px-2 py-2 hover:bg-white/10 rounded text-center">
-                Login
+              <Link href="/dashboard" className="px-2 py-2 hover:bg-white/10 rounded text-center">
+                Dashboard
               </Link>
+              {user ? (
+                <span className="px-2 py-2 font-medium text-center">
+                  {user.username}
+                </span>
+              ) : (
+                <Link
+                  href="/login"
+                  className="hover:bg-white/10 px-2 py-2 rounded text-center"
+                >
+                  Login
+                </Link>
+              )}
+
               <Link href="/register" className="bg-white text-primary px-4 py-2 rounded-lg hover:bg-gray-100 text-center">
                 Register
+              </Link>
+              <Link href="/" className="px-2 py-2 bg-white/10 rounded text-center">
+                <i className="lni lni-home text-xl md:text-2xl"></i>
               </Link>
             </div>
           </div>
