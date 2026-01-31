@@ -179,10 +179,8 @@ export default function LoginPage() {
                   <GoogleLogin
                     onSuccess={handleGoogleSuccess}
                     onError={handleGoogleError}
-                    useOneTap
                     theme="outline"
                     size="large"
-                    width="100%"
                     text="continue_with"
                   />
                 )}
