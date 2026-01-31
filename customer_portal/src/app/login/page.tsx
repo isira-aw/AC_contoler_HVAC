@@ -107,11 +107,21 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
+      <Link
+        href="/"
+        className="fixed top-6 left-6 z-50 flex items-center justify-center
+             w-20 h-10 rounded-full bg-primary shadow-md
+             text-gray-700 hover:bg-gray-100 hover:text-primary
+             transition text-white"
+        aria-label="Back"
+      >
+        <i className="lni lni-arrow-left text-xl "> Home</i>
+      </Link>
       <div className="card max-w-md w-full">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center">
-              <i className="lni lni-cloud text-2xl text-white"></i>
+            <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center text-white">
+              <i className="lni lni-cloud text-2xl "></i>
             </div>
           </div>
           <h1 className="text-2xl font-bold text-primary">Welcome Back</h1>

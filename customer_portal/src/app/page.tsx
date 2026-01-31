@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth';
+import router from 'next/router';
 
 const steps = [
   {
@@ -226,7 +227,6 @@ export default function HomePage() {
                 </button>
               ))}
 
-
               <div className="border-l border-white ">
 
                 {/* Dashboard Link */}
@@ -236,22 +236,39 @@ export default function HomePage() {
 
                 {/* User or Login */}
                 {user ? (
-                  <span className="px-3 py-2 font-medium text-white">
-                    {user.username}
-                  </span>
+                  <>
+                    <span className="px-3 py-1 font-medium text-white">
+                      {user.username}
+                    </span>
+
+                    <button
+                      onClick={() => {
+                        logout();
+                        router.push('/login');
+                      }}
+                      className="bg-white text-primary px-4 py-2 rounded-lg hover:bg-gray-100 text-center"
+                    >
+                      Logout
+                    </button>
+                  </>
                 ) : (
-                  <Link
-                    href="/login"
-                    className="text-white hover:bg-white/10 px-3 py-2 rounded text-sm font-medium"
-                  >
-                    Login
-                  </Link>
+                  <>
+                    <Link
+                      href="/login"
+                      className="text-white hover:bg-white/10 px-3 py-2 rounded text-sm font-medium"
+                    >
+                      Login
+                    </Link>
+
+                    <Link
+                      href="/register"
+                      className="bg-white text-primary px-4 py-2 rounded-lg hover:bg-gray-100 font-medium"
+                    >
+                      Register
+                    </Link>
+                  </>
                 )}
 
-                {/* Register Button */}
-                <Link href="/register" className="bg-white text-primary px-4 py-2 rounded-lg hover:bg-gray-100 font-medium">
-                  Register
-                </Link>
 
                 {/* Home Icon */}
                 <Link href="/" className="bg-white/20 text-white px-4 py-2 rounded-lg hover:bg-white/30 ml-2">
@@ -288,31 +305,41 @@ export default function HomePage() {
                 ))}
 
                 {/* Dashboard Link */}
-                <Link href="/dashboard" className="px-3 py-2 hover:bg-white/10 rounded text-center">
+                <Link href="/dashboard" className="px-3 py-2 hover:bg-white/10 rounded text-center text-white">
                   Dashboard
                 </Link>
 
                 {/* User or Login */}
                 {user ? (
-                  <span className="px-3 py-2 font-medium text-center">
+                  <>
+                  <span className="px-3 py-2 font-medium text-center text-white items-center ">
                     {user.username}
                   </span>
+                  <button
+                      onClick={() => {
+                        logout();
+                        router.push('/login');
+                      }}
+                      className="bg-white text-primary px-4 py-2 rounded-lg hover:bg-gray-100 text-center"
+                    >
+                      Logout
+                    </button>
+                  </>
                 ) : (
-                  <Link
-                    href="/login"
-                    className="hover:bg-white/10 px-3 py-2 rounded text-center"
-                  >
-                    Login
-                  </Link>
+                  <><Link
+                      href="/login"
+                      className="hover:bg-white/10 px-3 py-2 rounded text-center text-white"
+                    >
+                      Login
+                    </Link><Link href="/register" className="bg-white text-primary px-4 py-2 rounded-lg hover:bg-gray-100 text-center text-white">
+                        Register
+                      </Link>
+                  </>
                 )}
 
-                {/* Register Button */}
-                <Link href="/register" className="bg-white text-primary px-4 py-2 rounded-lg hover:bg-gray-100 text-center">
-                  Register
-                </Link>
 
                 {/* Home Icon */}
-                <Link href="/" className="px-3 py-2 bg-white/10 rounded text-center">
+                <Link href="/" className="px-3 py-2 bg-white/10 rounded text-center text-white">
                   <i className="lni lni-home text-xl md:text-2xl"></i>
                 </Link>
               </div>
