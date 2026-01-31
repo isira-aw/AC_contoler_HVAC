@@ -13,7 +13,7 @@ const steps = [
     label: 'Setup',
     desc: 'Sign up for free in seconds. Set up your organization profile and invite your team members.',
     color: 'bg-blue-500',
-    preview: 'Dashboard Setup View'
+    imageUrl: 'https://tse1.mm.bing.net/th/id/OIP.gY3UuNfnbu5r4XXjrNNP_wHaLH?rs=1&pid=ImgDetMain&o=7&rm=3'
   },
   {
     num: '02',
@@ -21,7 +21,7 @@ const steps = [
     label: 'Integration',
     desc: 'Add your HVAC units using our simple pairing process. We support all major brands.',
     color: 'bg-indigo-500',
-    preview: 'Device Pairing Screen'
+    imageUrl: 'https://windows10spotlight.com/wp-content/uploads/2023/07/13b02317bdea848d7199e940e8d45bdd-576x1024.jpg'
   },
   {
     num: '03',
@@ -29,7 +29,7 @@ const steps = [
     label: 'Customization',
     desc: 'Set up your preferences, create schedules, and define alert thresholds effortlessly.',
     color: 'bg-purple-500',
-    preview: 'Schedule Manager'
+    imageUrl: 'https://tse3.mm.bing.net/th/id/OIP.DIP1bzfXN1Go8PEzyDILSgHaLG?rs=1&pid=ImgDetMain&o=7&rm=3'
   },
   {
     num: '04',
@@ -37,7 +37,7 @@ const steps = [
     label: 'Launch',
     desc: 'Monitor your systems and watch your energy efficiency improve automatically.',
     color: 'bg-emerald-500',
-    preview: 'Efficiency Analytics'
+    imageUrl: 'https://wallpaperswide.com/download/mountain_lake_forest_nature-wallpaper-2560x1920.jpg'
   },
 ];
 
@@ -632,13 +632,11 @@ export default function HomePage() {
                     animate={{ y: 0, opacity: 1 }}
                     exit={{ y: -20, opacity: 0 }}
                     transition={{ duration: 0.4 }}
-                    className="absolute inset-0 flex flex-col items-center justify-center p-12 text-center"
+                    className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center"
                   >
                     {/* Replace this div with an actual <img> or <video> */}
                     <div className="w-full h-full rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center">
-                      <span className="text-white font-medium text-lg italic opacity-50">
-                        [UI Mockup: {steps[activeTab].preview}]
-                      </span>
+                      <img src={steps[activeTab].imageUrl} alt={steps[activeTab].label} className="w-full h-full rounded-xl" />
                     </div>
                   </motion.div>
                 </AnimatePresence>
