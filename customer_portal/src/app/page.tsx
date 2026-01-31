@@ -219,9 +219,11 @@ export default function HomePage() {
       <div className="min-h-screen" style={{ backgroundColor: 'var(--background)' }}>
         {/* ─────────────────────── HEADER ─────────────────────── */}
         <header
-          className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'py-3 shadow-lg' : 'py-4'}`}
-          style={{ backgroundColor: 'rgba(9, 65, 102, 0.95)', backdropFilter: 'blur(12px)' }}
+          className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-300 ${isScrolled ? 'py-3 shadow-lg' : 'py-4'}`}
+          style={{ backgroundColor: 'rgba(9, 65, 102, 0.97)', backdropFilter: 'blur(12px)' }}
         >
+          {/* Solid fallback — guarantees opaque bg even when backdrop-filter is unsupported or laggy */}
+          <div className="absolute inset-0 -z-10" style={{ backgroundColor: '#094166' }} />
           <div className="max-w-7xl mx-auto px-4 md:px-6 flex justify-between items-center">
             {/* Logo */}
             <Link href="/" className="flex items-center gap-2 text-white">
@@ -286,9 +288,10 @@ export default function HomePage() {
 
             {/* ── Mobile hamburger ── */}
             <button
-              className="md:hidden w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors text-white"
+              className="md:hidden relative z-[101] w-11 h-11 flex items-center justify-center rounded-lg hover:bg-white/10 active:bg-white/20 transition-colors"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+              style={{ color: '#ffffff' }}
             >
               <i className={`lni ${mobileMenuOpen ? 'lni-close' : 'lni-menu'} text-xl`}></i>
             </button>
