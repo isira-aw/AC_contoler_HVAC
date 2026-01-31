@@ -195,16 +195,31 @@ export default function HomePage() {
           animation: rotate 25s linear infinite;
         }
 
+        /* ─── Mobile menu slide-down animation ─── */
+        .mobile-menu-wrap {
+          display: grid;
+          grid-template-rows: 0fr;
+          transition: grid-template-rows 0.35s cubic-bezier(.4,0,.2,1),
+                      opacity 0.3s ease;
+          opacity: 0;
+        }
+        .mobile-menu-wrap.open {
+          grid-template-rows: 1fr;
+          opacity: 1;
+        }
+        .mobile-menu-inner {
+          overflow: hidden;
+        }
+
         html {
           scroll-behavior: smooth;
         }
       `}</style>
 
       <div className="min-h-screen" style={{ backgroundColor: 'var(--background)' }}>
-        {/* Header */}
+        {/* ─────────────────────── HEADER ─────────────────────── */}
         <header
-          className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'py-3 shadow-lg' : 'py-4'
-            }`}
+          className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'py-3 shadow-lg' : 'py-4'}`}
           style={{ backgroundColor: 'rgba(9, 65, 102, 0.95)', backdropFilter: 'blur(12px)' }}
         >
           <div className="max-w-7xl mx-auto px-4 md:px-6 flex justify-between items-center">
@@ -214,9 +229,8 @@ export default function HomePage() {
               <span className="text-lg md:text-xl font-bold tracking-tight">Smart HVAC</span>
             </Link>
 
-            {/* Desktop menu */}
+            {/* ── Desktop menu (unchanged) ── */}
             <div className="hidden md:flex items-center space-x-2">
-              {/* Navigation Section Buttons */}
               {['What It Is', 'Features', 'How It Works', 'About Us', 'FAQ'].map((item) => (
                 <button
                   key={item}
@@ -228,19 +242,15 @@ export default function HomePage() {
               ))}
 
               <div className="border-l border-white ">
-
-                {/* Dashboard Link */}
                 <Link href="/dashboard" className="text-white hover:bg-white/10 px-3 py-2 rounded text-sm font-medium">
                   Dashboard
                 </Link>
 
-                {/* User or Login */}
                 {user ? (
                   <>
                     <span className="px-3 py-1 font-medium text-white">
                       {user.username}
                     </span>
-
                     <button
                       onClick={() => {
                         logout();
@@ -259,7 +269,6 @@ export default function HomePage() {
                     >
                       Login
                     </Link>
-
                     <Link
                       href="/register"
                       className="bg-white text-primary px-4 py-2 rounded-lg hover:bg-gray-100 font-medium"
@@ -269,82 +278,110 @@ export default function HomePage() {
                   </>
                 )}
 
-
-                {/* Home Icon */}
                 <Link href="/" className="bg-white/20 text-white px-4 py-2 rounded-lg hover:bg-white/30 ml-2">
                   <i className="lni lni-home text-xl"></i>
                 </Link>
               </div>
             </div>
 
-            {/* Mobile hamburger button */}
+            {/* ── Mobile hamburger ── */}
             <button
-              className="md:hidden p-2 hover:opacity-75 text-white"
+              className="md:hidden w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors text-white"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
             >
               <i className={`lni ${mobileMenuOpen ? 'lni-close' : 'lni-menu'} text-xl`}></i>
             </button>
           </div>
 
-          {/* Mobile menu dropdown */}
-          {mobileMenuOpen && (
-            <div className="md:hidden mt-4 pt-4 border-t border-white/20 px-4">
-              <div className="flex flex-col space-y-3">
-                {/* Navigation Section Buttons */}
-                {['What It Is', 'Features', 'How It Works', 'About Us', 'FAQ'].map((item) => (
-                  <button
-                    key={item}
-                    onClick={() => {
-                      scrollToSection(item.toLowerCase().replace(/\s+/g, '-'));
-                      setMobileMenuOpen(false);
-                    }}
-                    className="text-white/90 hover:bg-white/10 px-3 py-2 rounded text-left font-medium"
-                  >
-                    {item}
-                  </button>
-                ))}
+          {/* ── Mobile menu dropdown (animated slide) ── */}
+          <div className={`mobile-menu-wrap md:hidden ${mobileMenuOpen ? 'open' : ''}`}>
+            <div className="mobile-menu-inner">
+              <div className="mt-3 pt-4 border-t border-white/20 px-4 pb-4">
 
-                {/* Dashboard Link */}
-                <Link href="/dashboard" className="px-3 py-2 hover:bg-white/10 rounded text-center text-white">
-                  Dashboard
-                </Link>
-
-                {/* User or Login */}
-                {user ? (
-                  <>
-                  <span className="px-3 py-2 font-medium text-center text-white items-center ">
-                    {user.username}
-                  </span>
-                  <button
+                {/* Nav section links */}
+                <div className="flex flex-col gap-1">
+                  {['What It Is', 'Features', 'How It Works', 'About Us', 'FAQ'].map((item) => (
+                    <button
+                      key={item}
                       onClick={() => {
-                        logout();
-                        router.push('/login');
+                        scrollToSection(item.toLowerCase().replace(/\s+/g, '-'));
+                        setMobileMenuOpen(false);
                       }}
-                      className="bg-white text-primary px-4 py-2 rounded-lg hover:bg-gray-100 text-center"
+                      className="w-full text-left text-white/90 hover:bg-white/10 active:bg-white/15 px-4 py-3 rounded-xl transition-colors font-medium text-sm"
                     >
-                      Logout
+                      {item}
                     </button>
-                  </>
-                ) : (
-                  <><Link
-                      href="/login"
-                      className="hover:bg-white/10 px-3 py-2 rounded text-center text-white"
-                    >
-                      Login
-                    </Link><Link href="/register" className="bg-white text-primary px-4 py-2 rounded-lg hover:bg-gray-100 text-center text-white">
+                  ))}
+                </div>
+
+                {/* Divider between nav & auth */}
+                <div className="my-3 border-t border-white/15" />
+
+                {/* Auth block */}
+                <div className="flex flex-col gap-2">
+                  {/* Dashboard */}
+                  <Link
+                    href="/dashboard"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-3 text-white/90 hover:bg-white/10 active:bg-white/15 px-4 py-3 rounded-xl transition-colors text-sm font-medium"
+                  >
+                    <DashboardIcon className="w-4 h-4 opacity-70" />
+                    Dashboard
+                  </Link>
+
+                  {user ? (
+                    <>
+                      {/* Username row */}
+                      <div className="flex items-center gap-3 px-4 py-2">
+                        <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+                          <UserIcon className="w-4 h-4 text-white" />
+                        </div>
+                        <span className="font-semibold text-white text-sm truncate">{user.username}</span>
+                      </div>
+                      {/* Logout */}
+                      <button
+                        onClick={() => {
+                          logout();
+                          router.push('/login');
+                        }}
+                        className="w-full bg-white/10 hover:bg-white/20 active:bg-white/25 border border-white/20 text-white px-4 py-3 rounded-xl transition-colors text-sm font-medium text-left"
+                      >
+                        Logout
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <Link
+                        href="/login"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="w-full text-center text-white/90 hover:bg-white/10 active:bg-white/15 border border-white/25 px-4 py-3 rounded-xl transition-colors text-sm font-medium"
+                      >
+                        Login
+                      </Link>
+                      <Link
+                        href="/register"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="w-full text-center bg-white text-[var(--primary)] hover:bg-gray-100 active:bg-gray-200 px-4 py-3 rounded-xl transition-colors text-sm font-semibold"
+                      >
                         Register
                       </Link>
-                  </>
-                )}
+                    </>
+                  )}
 
-
-                {/* Home Icon */}
-                <Link href="/" className="px-3 py-2 bg-white/10 rounded text-center text-white">
-                  <i className="lni lni-home text-xl md:text-2xl"></i>
-                </Link>
+                  {/* Home shortcut */}
+                  <Link
+                    href="/"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-3 text-white/70 hover:bg-white/10 active:bg-white/15 px-4 py-3 rounded-xl transition-colors text-sm"
+                  >
+                    <i className="lni lni-home text-base"></i>
+                    Home
+                  </Link>
+                </div>
               </div>
             </div>
-          )}
+          </div>
         </header>
 
         {/* SECTION 1: HERO */}
@@ -384,8 +421,6 @@ export default function HomePage() {
                 IoT Control System
               </span>
             </h1>
-
-
           </div>
         </section>
 
@@ -461,7 +496,6 @@ export default function HomePage() {
           <br />
 
           <div className="max-w-7xl mx-auto">
-
             <div className="grid md:grid-cols-3 gap-8">
               {[
                 {
@@ -533,9 +567,7 @@ export default function HomePage() {
                   key={feature.title}
                   className="group relative bg-white p-10 overflow-hidden transition-all duration-500 min-h-[250px] flex flex-col"
                 >
-                  {/* THE BIG ICON BACKGROUND - Fixed Sizing */}
                   <div className={`absolute -right-16 -bottom-16 w-64 h-64 opacity-[0.2] transition-all duration-700 ease-in-out pointer-events-none transform group-hover:scale-150 group-hover:-rotate-12 group-hover:opacity-[0.1] ${feature.color}`}>
-                    {/* Cloning the icon and ensuring it fills the parent div */}
                     {React.cloneElement(feature.icon, { className: "w-full h-full" })}
                   </div>
 
@@ -554,14 +586,12 @@ export default function HomePage() {
                     <p className="text-gray-500 text-base leading-relaxed">
                       {feature.desc}
                     </p>
-
                   </div>
                 </div>
               ))}
             </div>
           </div>
         </section>
-
 
         {/* SECTION 6: HOW IT WORKS */}
         <section id="how-it-works" className="py-24 px-6 bg-slate-50">
@@ -585,7 +615,6 @@ export default function HomePage() {
                       : 'hover:bg-white/50 opacity-60'
                       }`}
                   >
-                    {/* Active Progress Bar (Vertical) */}
                     {activeTab === idx && (
                       <motion.div
                         layoutId="activeBar"
@@ -622,7 +651,6 @@ export default function HomePage() {
 
               {/* RIGHT: Visual Showcase */}
               <div className="lg:col-span-7 relative h-[500px] w-full bg-gray-900 rounded-[2.5rem] shadow-2xl overflow-hidden border-[8px] border-white">
-                {/* Ambient Background Glow */}
                 <div className={`absolute inset-0 opacity-20 transition-colors duration-700 ${steps[activeTab].color}`} />
 
                 <AnimatePresence mode="wait">
@@ -634,18 +662,15 @@ export default function HomePage() {
                     transition={{ duration: 0.4 }}
                     className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center"
                   >
-                    {/* Replace this div with an actual <img> or <video> */}
                     <div className="w-full h-full rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center">
                       <img src={steps[activeTab].imageUrl} alt={steps[activeTab].label} className="w-full h-full rounded-xl" />
                     </div>
                   </motion.div>
                 </AnimatePresence>
               </div>
-
             </div>
           </div>
         </section>
-
 
         {/* SECTION 8: ARCHITECTURE */}
         <section className="py-24 px-6" style={{ backgroundColor: '#0a1929' }}>
@@ -713,8 +738,7 @@ export default function HomePage() {
                   {['Overview', 'Devices', 'Analytics', 'Alerts'].map((tab, i) => (
                     <span
                       key={tab}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap ${i === 0 ? 'text-white' : 'bg-gray-100 text-gray-600'
-                        }`}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap ${i === 0 ? 'text-white' : 'bg-gray-100 text-gray-600'}`}
                       style={i === 0 ? { backgroundColor: 'var(--primary)' } : {}}
                     >
                       {tab}
@@ -841,10 +865,8 @@ export default function HomePage() {
                   >
                     <h4 className="font-semibold text-gray-800">{faq.q}</h4>
                     <ChevronDownIcon
-                      className={`w-5 h-5 transition-transform duration-300 text-[var(--primary)] ${activeFaq === i ? 'rotate-180' : ''
-                        }`}
+                      className={`w-5 h-5 transition-transform duration-300 text-[var(--primary)] ${activeFaq === i ? 'rotate-180' : ''}`}
                     />
-
                   </button>
                   <div
                     className={`overflow-hidden transition-all duration-400 ${activeFaq === i ? 'max-h-[300px]' : 'max-h-0'}`}
@@ -977,8 +999,7 @@ function SectionHeader({
         {label}
       </span>
       <h2
-        className={`animate-on-scroll stagger-1 text-3xl md:text-4xl lg:text-5xl font-extrabold mb-4 tracking-tight leading-tight ${dark ? 'text-white' : 'text-gray-900'
-          }`}
+        className={`animate-on-scroll stagger-1 text-3xl md:text-4xl lg:text-5xl font-extrabold mb-4 tracking-tight leading-tight ${dark ? 'text-white' : 'text-gray-900'}`}
       >
         {title}{' '}
         <span style={{ color: highlightColor || 'var(--primary)' }}>{titleHighlight}</span>
