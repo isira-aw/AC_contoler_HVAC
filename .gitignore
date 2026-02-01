@@ -45,3 +45,12 @@ dist/
 # Database
 *.db
 *.sqlite
+
+# Docker and Deployment
+certbot/
+postgres_data/
+
+# SSL Certificates (sensitive)
+*.pem
+*.crt
+*.key
