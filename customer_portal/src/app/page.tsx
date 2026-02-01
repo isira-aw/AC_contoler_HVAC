@@ -4,7 +4,18 @@ import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth';
-import router from 'next/router';
+import HomeHeader from '@/components/HomeHeader';
+import {
+  CloudIcon,
+  BoltIcon,
+  DashboardIcon,
+  BellIcon,
+  ChartIcon,
+  CogIcon,
+  EyeIcon,
+  CpuIcon,
+  UserIcon,
+} from '@/components/Icons';
 
 const steps = [
   {
@@ -43,16 +54,7 @@ const steps = [
 
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState(0);
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeFaq, setActiveFaq] = useState<number | null>(null);
-  const { isAuthenticated, isLoading, logout, user } = useAuth();
-
-  useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 50);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   // Intersection Observer for animations
   useEffect(() => {
@@ -70,16 +72,6 @@ export default function HomePage() {
     document.querySelectorAll('.animate-on-scroll').forEach((el) => observer.observe(el));
     return () => observer.disconnect();
   }, []);
-
-  const scrollToSection = (id: string) => {
-    const element = document.getElementById(id);
-    if (element) {
-      const headerHeight = 80;
-      const position = element.getBoundingClientRect().top + window.pageYOffset - headerHeight;
-      window.scrollTo({ top: position, behavior: 'smooth' });
-      setMobileMenuOpen(false);
-    }
-  };
 
   return (
     <>
@@ -217,175 +209,7 @@ export default function HomePage() {
       `}</style>
 
       <div className="min-h-screen" style={{ backgroundColor: 'var(--background)' }}>
-        {/* ─────────────────────── HEADER ─────────────────────── */}
-        <header
-          className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-300 ${isScrolled ? 'py-3 shadow-lg' : 'py-4'}`}
-          style={{ backgroundColor: 'rgba(9, 65, 102, 0.97)', backdropFilter: 'blur(12px)' }}
-        >
-          {/* Solid fallback — guarantees opaque bg even when backdrop-filter is unsupported or laggy */}
-          <div className="absolute inset-0 -z-10" style={{ backgroundColor: '#094166' }} />
-          <div className="max-w-7xl mx-auto px-4 md:px-6 flex justify-between items-center">
-            {/* Logo */}
-            <Link href="/" className="flex items-center gap-2 text-white">
-              <CloudIcon className="w-7 h-7" />
-              <span className="text-lg md:text-xl font-bold tracking-tight">Smart HVAC</span>
-            </Link>
-
-            {/* ── Desktop menu (unchanged) ── */}
-            <div className="hidden md:flex items-center space-x-2">
-              {['What It Is', 'Features', 'How It Works', 'About Us', 'FAQ'].map((item) => (
-                <button
-                  key={item}
-                  onClick={() => scrollToSection(item.toLowerCase().replace(/\s+/g, '-'))}
-                  className="text-white/80 hover:text-white hover:bg-white/10 px-3 py-2 rounded-lg transition-all text-sm font-medium"
-                >
-                  {item}
-                </button>
-              ))}
-
-              <div className="border-l border-white ">
-                <Link href="/dashboard" className="text-white hover:bg-white/10 px-3 py-2 rounded text-sm font-medium">
-                  Dashboard
-                </Link>
-
-                {user ? (
-                  <>
-                    <span className="px-3 py-1 font-medium text-white">
-                      {user.username}
-                    </span>
-                    <button
-                      onClick={() => {
-                        logout();
-                        router.push('/login');
-                      }}
-                      className="bg-white text-primary px-4 py-2 rounded-lg hover:bg-gray-100 text-center"
-                    >
-                      Logout
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <Link
-                      href="/login"
-                      className="text-white hover:bg-white/10 px-3 py-2 rounded text-sm font-medium"
-                    >
-                      Login
-                    </Link>
-                    <Link
-                      href="/register"
-                      className="bg-white text-primary px-4 py-2 rounded-lg hover:bg-gray-100 font-medium"
-                    >
-                      Register
-                    </Link>
-                  </>
-                )}
-
-                <Link href="/" className="bg-white/20 text-white px-4 py-2 rounded-lg hover:bg-white/30 ml-2">
-                  <i className="lni lni-home text-xl"></i>
-                </Link>
-              </div>
-            </div>
-
-            {/* ── Mobile hamburger ── */}
-            <button
-              className="md:hidden relative z-[101] w-11 h-11 flex items-center justify-center rounded-lg hover:bg-white/10 active:bg-white/20 transition-colors"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
-              style={{ color: '#ffffff' }}
-            >
-              <i className={`lni ${mobileMenuOpen ? 'lni-close' : 'lni-menu'} text-xl`}></i>
-            </button>
-          </div>
-
-          {/* ── Mobile menu dropdown (animated slide) ── */}
-          <div className={`mobile-menu-wrap md:hidden ${mobileMenuOpen ? 'open' : ''}`}>
-            <div className="mobile-menu-inner">
-              <div className="mt-3 pt-4 border-t border-white/20 px-4 pb-4">
-
-                {/* Nav section links */}
-                <div className="flex flex-col gap-1">
-                  {['What It Is', 'Features', 'How It Works', 'About Us', 'FAQ'].map((item) => (
-                    <button
-                      key={item}
-                      onClick={() => {
-                        scrollToSection(item.toLowerCase().replace(/\s+/g, '-'));
-                        setMobileMenuOpen(false);
-                      }}
-                      className="w-full text-left text-white/90 hover:bg-white/10 active:bg-white/15 px-4 py-3 rounded-xl transition-colors font-medium text-sm"
-                    >
-                      {item}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Divider between nav & auth */}
-                <div className="my-3 border-t border-white/15" />
-
-                {/* Auth block */}
-                <div className="flex flex-col gap-2">
-                  {/* Dashboard */}
-                  <Link
-                    href="/dashboard"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-3 text-white/90 hover:bg-white/10 active:bg-white/15 px-4 py-3 rounded-xl transition-colors text-sm font-medium"
-                  >
-                    <DashboardIcon className="w-4 h-4 opacity-70" />
-                    Dashboard
-                  </Link>
-
-                  {user ? (
-                    <>
-                      {/* Username row */}
-                      <div className="flex items-center gap-3 px-4 py-2">
-                        <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
-                          <UserIcon className="w-4 h-4 text-white" />
-                        </div>
-                        <span className="font-semibold text-white text-sm truncate">{user.username}</span>
-                      </div>
-                      {/* Logout */}
-                      <button
-                        onClick={() => {
-                          logout();
-                          router.push('/login');
-                        }}
-                        className="w-full bg-white/10 hover:bg-white/20 active:bg-white/25 border border-white/20 text-white px-4 py-3 rounded-xl transition-colors text-sm font-medium text-left"
-                      >
-                        Logout
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <Link
-                        href="/login"
-                        onClick={() => setMobileMenuOpen(false)}
-                        className="w-full text-center text-white/90 hover:bg-white/10 active:bg-white/15 border border-white/25 px-4 py-3 rounded-xl transition-colors text-sm font-medium"
-                      >
-                        Login
-                      </Link>
-                      <Link
-                        href="/register"
-                        onClick={() => setMobileMenuOpen(false)}
-                        className="w-full text-center bg-white text-[var(--primary)] hover:bg-gray-100 active:bg-gray-200 px-4 py-3 rounded-xl transition-colors text-sm font-semibold"
-                      >
-                        Register
-                      </Link>
-                    </>
-                  )}
-
-                  {/* Home shortcut */}
-                  <Link
-                    href="/"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-3 text-white/70 hover:bg-white/10 active:bg-white/15 px-4 py-3 rounded-xl transition-colors text-sm"
-                  >
-                    <i className="lni lni-home text-base"></i>
-                    Home
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
-        </header>
+        <HomeHeader />
 
         {/* SECTION 1: HERO */}
         <section className="min-h-screen flex items-center pt-32 pb-20 px-6 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #041c2c 0%, #062d47 50%, #041c2c 100%)' }}>
@@ -1015,32 +839,7 @@ function SectionHeader({
   );
 }
 
-// SVG Icons
-function CloudIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
-    </svg>
-  );
-}
-
-function MenuIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="3" y1="12" x2="21" y2="12" />
-      <line x1="3" y1="6" x2="21" y2="6" />
-      <line x1="3" y1="18" x2="21" y2="18" />
-    </svg>
-  );
-}
-
-function BoltIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-    </svg>
-  );
-}
+// SVG Icons (remaining local icons not in shared Icons component)
 
 function ArrowRightIcon({ className }: { className?: string }) {
   return (
@@ -1067,23 +866,6 @@ function NetworkIcon({ className }: { className?: string }) {
       <rect x="9" y="2" width="6" height="6" rx="1" />
       <path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3" />
       <path d="M12 12V8" />
-    </svg>
-  );
-}
-
-function CpuIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="4" y="4" width="16" height="16" rx="2" ry="2" />
-      <rect x="9" y="9" width="6" height="6" />
-      <line x1="9" y1="1" x2="9" y2="4" />
-      <line x1="15" y1="1" x2="15" y2="4" />
-      <line x1="9" y1="20" x2="9" y2="23" />
-      <line x1="15" y1="20" x2="15" y2="23" />
-      <line x1="20" y1="9" x2="23" y2="9" />
-      <line x1="20" y1="14" x2="23" y2="14" />
-      <line x1="1" y1="9" x2="4" y2="9" />
-      <line x1="1" y1="14" x2="4" y2="14" />
     </svg>
   );
 }
@@ -1116,15 +898,6 @@ function AlertTriangleIcon({ className }: { className?: string }) {
   );
 }
 
-function EyeIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  );
-}
-
 function ClockIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1145,45 +918,6 @@ function UsersIcon({ className }: { className?: string }) {
   );
 }
 
-function DashboardIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="3" width="7" height="7" />
-      <rect x="14" y="3" width="7" height="7" />
-      <rect x="14" y="14" width="7" height="7" />
-      <rect x="3" y="14" width="7" height="7" />
-    </svg>
-  );
-}
-
-function BellIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-    </svg>
-  );
-}
-
-function ChartIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="18" y1="20" x2="18" y2="10" />
-      <line x1="12" y1="20" x2="12" y2="4" />
-      <line x1="6" y1="20" x2="6" y2="14" />
-    </svg>
-  );
-}
-
-function CogIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-    </svg>
-  );
-}
-
 function CalendarIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1199,15 +933,6 @@ function ShieldIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-    </svg>
-  );
-}
-
-function UserIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-      <circle cx="12" cy="7" r="4" />
     </svg>
   );
 }

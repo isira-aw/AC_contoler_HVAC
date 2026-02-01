@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/auth';
 import { customerApi } from '@/lib/api';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import Link from 'next/link';
+import Header from '@/components/Header';
 
 interface DeviceStatus {
   device: {
@@ -79,7 +80,6 @@ export default function DeviceDashboard() {
   const [mode, setMode] = useState('COOLING');
   const [fanSpeed, setFanSpeed] = useState('MED');
   const [temperatureSetpoint, setTemperatureSetpoint] = useState(24);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Pending changes states for Control Panel
   const [pendingSystemOn, setPendingSystemOn] = useState<boolean | null>(null);
@@ -258,96 +258,12 @@ export default function DeviceDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-primary text-white py-4 px-4 md:px-6 shadow-lg sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-
-          {/* Left side - Navigation */}
-          <div className="flex items-center space-x-3 md:space-x-4">
-            <span className="text-lg md:text-xl font-bold">Smart HVAC</span>
-
-            <div className="border-l border-white/30 pl-3 md:pl-4">
-              <h1 className="text-base md:text-xl font-bold truncate max-w-[120px] sm:max-w-none">{device?.deviceName || deviceId}</h1>
-              <p className="text-xs md:text-sm opacity-75 hidden sm:block">{device?.location}</p>
-            </div>
-          </div>
-
-          {/* Desktop menu */}
-          <div className="hidden md:flex items-center space-x-4">
-            <Link href="/dashboard" className="px-2 py-2 hover:bg-white/10 rounded text-center">
-              Dashboard
-            </Link>
-            {user ? (
-              <span className="px-2 py-2 font-medium text-center">
-                {user.username}
-              </span>
-            ) : (
-              <Link
-                href="/login"
-                className="hover:bg-white/10 px-2 py-2 rounded text-center"
-              >
-                Login
-              </Link>
-            )}
-            <div className={`flex items-center space-x-2 ${device?.online ? 'text-green-300' : 'text-red-300'}`}>
-              <div className={`w-3 h-3 rounded-full ${device?.online ? 'bg-green-400' : 'bg-red-400'}`}></div>
-              <span>{device?.online ? 'Online' : 'Offline'}</span>
-            </div>
-            <button
-              onClick={() => {
-                logout();
-                router.push('/login');
-              }}
-              className="bg-white text-primary px-4 py-1 rounded hover:bg-gray-100"
-            >
-              Logout
-            </button>
-            <Link href="/" className=" text-white px-4 py-2 rounded-lg hover:bg-white/10">
-              <i className="lni lni-home text-xl md:text-2xl"></i>
-            </Link>
-          </div>
-
-          {/* Mobile - Status indicator and hamburger */}
-          <div className="flex md:hidden items-center space-x-3">
-            <div className={`w-3 h-3 rounded-full ${device?.online ? 'bg-green-400' : 'bg-red-400'}`}></div>
-            <button
-              className="p-2 hover:opacity-75"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            >
-              <i className={`lni ${mobileMenuOpen ? 'lni-close' : 'lni-menu'} text-xl`}></i>
-            </button>
-          </div>
-        </div>
-
-        {/* Mobile menu dropdown */}
-        {mobileMenuOpen && (
-          <div className="md:hidden mt-4 pt-4 border-t border-white/20">
-            <div className="flex flex-col space-y-3">
-              <div className="flex items-center justify-between px-2">
-                <span className="text-sm opacity-75">{device?.location}</span>
-                <span className={`text-sm ${device?.online ? 'text-green-300' : 'text-red-300'}`}>
-                  {device?.online ? 'Online' : 'Offline'}
-                </span>
-              </div>
-              <Link href="/dashboard" className="px-2 py-2 hover:bg-white/10 rounded text-center">
-                Dashboard
-              </Link>
-              <button
-                onClick={() => {
-                  logout();
-                  router.push('/login');
-                }}
-                className="bg-white text-primary px-4 py-2 rounded hover:bg-gray-100 text-center"
-              >
-                Logout
-              </button>
-              <Link href="/" className="px-2 py-2 hover:bg-white/10 rounded text-center">
-                <i className="lni lni-home text-xl md:text-2xl"></i>
-              </Link>
-            </div>
-          </div>
-        )}
-      </header>
+      <Header
+        deviceName={device?.deviceName || deviceId}
+        deviceLocation={device?.location}
+        deviceOnline={device?.online}
+        showDeviceStatus={true}
+      />
 
       <main className="max-w-7xl mx-auto px-6 py-8">
         {/* Status Cards */}

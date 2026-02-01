@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { customerApi } from '@/lib/api';
 import Link from 'next/link';
+import Header from '@/components/Header';
 
 interface Device {
   id: number;
@@ -27,7 +28,6 @@ export default function DashboardPage() {
   const [assignDeviceId, setAssignDeviceId] = useState('');
   const [assignPassword, setAssignPassword] = useState('');
   const [error, setError] = useState('');
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -108,70 +108,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-primary text-white py-4 px-4 md:px-6 shadow-lg sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          {/* Left side - Navigation */}
-          <div className="flex items-center space-x-4 md:space-x-6">
-            <span className="text-lg md:text-xl font-bold">Smart HVAC</span>
-          </div>
-
-          {/* Desktop menu */}
-          <div className=" hidden md:flex items-center space-x-4">
-            <Link href="/dashboard" className="bg-white/10 px-2 py-2 rounded text-center">
-              Dashboard
-            </Link>
-            <span>{user?.username}</span>
-            <button
-              onClick={() => {
-                logout();
-                router.push('/login');
-              }}
-              className="bg-white text-primary px-4 py-2 rounded-lg hover:bg-gray-100 text-center"
-            >
-              Logout
-            </button>
-            <Link href="/" className=" text-white px-4 py-2 rounded-lg hover:bg-white/10">
-              <i className="lni lni-home text-xl md:text-2xl"></i>
-            </Link>
-          </div>
-
-          {/* Mobile hamburger button */}
-          <button
-            className="md:hidden p-2 hover:opacity-75"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            <i className={`lni ${mobileMenuOpen ? 'lni-close' : 'lni-menu'} text-xl`}></i>
-          </button>
-        </div>
-
-        {/* Mobile menu dropdown */}
-        {mobileMenuOpen && (
-          <div className="md:hidden mt-4 pt-4 border-t border-white/20">
-            <div className="flex flex-col space-y-3">
-              <Link href="/dashboard" className="px-2 py-2 bg-white/10 rounded text-center ">
-                Dashboard
-              </Link>
-                <span className="px-2 py-2 font-medium text-center">
-                  <i className="lni lni-user mr-2 text-sm"></i>
-                  <span>{user?.username}</span>
-                </span>
-              <button
-                onClick={() => {
-                  logout();
-                  router.push('/login');
-                }}
-                className="bg-white text-primary px-4 py-2 rounded hover:bg-gray-100 text-center"
-              >
-                Logout
-              </button>
-              <Link href="/" className="px-2 py-2 hover:bg-white/10 rounded text-center">
-                <i className="lni lni-home text-xl md:text-2xl"></i>
-              </Link>
-            </div>
-          </div>
-        )}
-      </header>
+      <Header />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 py-8">
