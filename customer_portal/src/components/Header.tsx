@@ -29,8 +29,8 @@ export default function Header({
   };
 
   return (
-    <header className="bg-primary text-white py-4 px-4 md:px-6 shadow-lg sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto flex justify-between items-center">
+    <header className="bg-primary text-white py-4 px-4 md:px-6 shadow-lg sticky top-0 z-50 w-full">
+      <div className="w-full md:max-w-7xl md:mx-auto flex justify-between items-center">
         {/* Left side - Logo and optional device info */}
         <div className="flex items-center space-x-3 md:space-x-4">
           <span className="text-lg md:text-xl font-bold">Smart HVAC</span>
