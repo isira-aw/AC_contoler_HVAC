@@ -9,9 +9,6 @@ RUN npm ci
 # Copy source files
 COPY . .
 
-# Ensure public directory exists
-RUN mkdir -p public
-
 # Build arguments for environment variables
 ARG NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_GOOGLE_CLIENT_ID
