@@ -1,0 +1,155 @@
+# =====================================================
+# Docker Compose - Production Deployment from Registry
+# =====================================================
+# This file is used on the production server to deploy
+# containers from GitLab Container Registry images.
+#
+# Usage: docker compose -f docker-compose.deploy.yml up -d
+#
+# Required environment variables (in /opt/hvac/.env):
+#   - CI_REGISTRY_IMAGE (e.g., registry.gitlab.com/your-group/your-project)
+#   - DB_PASSWORD, JWT_SECRET, MOSQUITTO_PASSWORD, etc.
+# =====================================================
+
+version: '3.8'
+
+services:
+  # =====================================================
+  # Traefik Reverse Proxy
+  # =====================================================
+  traefik:
+    image: traefik:v2.10
+    container_name: hvac-traefik
+    restart: unless-stopped
+    command:
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL:-admin@live-ac.tech}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "letsencrypt:/letsencrypt"
+    networks:
+      - hvac-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`traefik.${DOMAIN:-live-ac.tech}`)"
+      - "traefik.http.routers.dashboard.entrypoints=websecure"
+      - "traefik.http.routers.dashboard.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.middlewares=auth"
+      - "traefik.http.middlewares.auth.basicauth.users=${TRAEFIK_AUTH:-admin:$$apr1$$H6uskkkW$$IgXLP6ewTrSuBkTrqE8wj/}"
+
+  # =====================================================
+  # PostgreSQL Database
+  # =====================================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: hvac-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-hvac_db}
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - hvac-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d ${DB_NAME:-hvac_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # =====================================================
+  # Spring Boot Backend (from GitLab Registry)
+  # =====================================================
+  backend:
+    image: ${CI_REGISTRY_IMAGE}/backend:${IMAGE_TAG:-latest}
+    container_name: hvac-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-hvac_db}
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      MOSQUITTO_HOST: ${MOSQUITTO_HOST:-trolley.proxy.rlwy.net}
+      MOSQUITTO_PORT: ${MOSQUITTO_PORT:-26703}
+      MOSQUITTO_USERNAME: ${MOSQUITTO_USERNAME:-hvac-monitoring-system}
+      MOSQUITTO_PASSWORD: ${MOSQUITTO_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-21600000}
+      SPRING_MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
+      SPRING_MAIL_PORT: ${MAIL_PORT:-587}
+      SPRING_MAIL_USERNAME: ${MAIL_USERNAME}
+      SPRING_MAIL_PASSWORD: ${MAIL_PASSWORD}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      CORS_ALLOWED_ORIGINS: https://${DOMAIN:-live-ac.tech},https://www.${DOMAIN:-live-ac.tech}
+    networks:
+      - hvac-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend.rule=Host(`api.${DOMAIN:-live-ac.tech}`)"
+      - "traefik.http.routers.backend.entrypoints=websecure"
+      - "traefik.http.routers.backend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.backend.loadbalancer.server.port=8080"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+
+  # =====================================================
+  # Next.js Customer Portal (from GitLab Registry)
+  # =====================================================
+  customer-portal:
+    image: ${CI_REGISTRY_IMAGE}/customer-portal:${IMAGE_TAG:-latest}
+    container_name: hvac-customer-portal
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+    networks:
+      - hvac-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.customer.rule=Host(`${DOMAIN:-live-ac.tech}`) || Host(`www.${DOMAIN:-live-ac.tech}`)"
+      - "traefik.http.routers.customer.entrypoints=websecure"
+      - "traefik.http.routers.customer.tls.certresolver=letsencrypt"
+      - "traefik.http.services.customer.loadbalancer.server.port=3000"
+      # Redirect www to non-www
+      - "traefik.http.middlewares.redirect-www.redirectregex.regex=^https://www\\.(.+)"
+      - "traefik.http.middlewares.redirect-www.redirectregex.replacement=https://$${1}"
+      - "traefik.http.middlewares.redirect-www.redirectregex.permanent=true"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+
+networks:
+  hvac-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  letsencrypt:
+    driver: local

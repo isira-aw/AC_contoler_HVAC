@@ -315,31 +315,273 @@ tail -f /var/log/nginx/access.log
 
 ---
 
-## CI/CD with GitLab
+## CI/CD with GitLab (Automatic Deployment)
 
-### Required GitLab Variables
+This repository includes a GitLab CI/CD pipeline that automatically:
+1. **Builds** Docker images for both applications when code changes
+2. **Pushes** images to GitLab Container Registry
+3. **Deploys** to production server when code is merged to `main`
+
+### Pipeline Overview
+
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│    BUILD    │────▶│    TEST     │────▶│   DEPLOY    │
+│             │     │  (optional) │     │             │
+│ - Backend   │     │             │     │ SSH to      │
+│ - Portal    │     │             │     │ server      │
+└─────────────┘     └─────────────┘     └─────────────┘
+```
+
+### Required GitLab CI/CD Variables
 
 Go to **Settings** → **CI/CD** → **Variables** and add:
 
-| Variable | Value | Protected | Masked |
-|----------|-------|-----------|--------|
-| `SERVER_IP` | `64.227.144.94` | Yes | No |
-| `SSH_PRIVATE_KEY` | Your SSH private key | Yes | Yes |
-| `SSH_KNOWN_HOSTS` | Server's SSH fingerprint | Yes | No |
-| `NEXT_PUBLIC_API_URL` | `https://api.live-ac.tech` | No | No |
-| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Your Google Client ID | No | No |
-| `DOKPLOY_WEBHOOK_URL` | Dokploy webhook URL | Yes | Yes |
+| Variable | Value | Protected | Masked | Description |
+|----------|-------|-----------|--------|-------------|
+| `SERVER_IP` | `64.227.144.94` | Yes | No | Production server IP |
+| `SSH_PRIVATE_KEY` | SSH private key content | Yes | Yes | For SSH deployment |
+| `SSH_KNOWN_HOSTS` | Server SSH fingerprint | Yes | No | Prevents MITM |
+| `NEXT_PUBLIC_API_URL` | `https://api.live-ac.tech` | No | No | Backend API URL |
+| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Your Google Client ID | No | No | OAuth client ID |
 
-### Generate SSH Key for Deployment
+### Step 1: Generate SSH Deployment Key
+
 ```bash
 # On your local machine
-ssh-keygen -t ed25519 -C "gitlab-deploy"
+ssh-keygen -t ed25519 -C "gitlab-deploy" -f ~/.ssh/gitlab-deploy
 
 # Copy public key to server
-ssh-copy-id -i ~/.ssh/id_ed25519.pub root@64.227.144.94
+ssh-copy-id -i ~/.ssh/gitlab-deploy.pub root@64.227.144.94
 
-# Get known_hosts entry
-ssh-keyscan 64.227.144.94
+# Get the private key content (add this to GitLab CI/CD variables)
+cat ~/.ssh/gitlab-deploy
+
+# Get known_hosts entry (add this to GitLab CI/CD variables)
+ssh-keyscan -H 64.227.144.94
+```
+
+### Step 2: Prepare Production Server
+
+Run the server setup script on your production server:
+
+```bash
+ssh root@64.227.144.94
+
+# Download and run setup script
+curl -sSL https://raw.githubusercontent.com/YOUR_REPO/scripts/server-setup.sh | bash
+
+# Or manually:
+mkdir -p /opt/hvac
+cd /opt/hvac
+
+# Create environment file
+nano .env
+# (Add all required environment variables)
+
+# Copy docker-compose.deploy.yml from this repository
+# Then login to GitLab Container Registry
+docker login registry.gitlab.com
+```
+
+### Step 3: Configure Server Environment
+
+Edit `/opt/hvac/.env` on the production server:
+
+```env
+# GitLab Container Registry
+CI_REGISTRY=registry.gitlab.com
+CI_REGISTRY_IMAGE=registry.gitlab.com/YOUR_GROUP/YOUR_PROJECT
+CI_REGISTRY_USER=gitlab-ci-token
+CI_REGISTRY_PASSWORD=YOUR_DEPLOY_TOKEN_OR_PAT
+
+# Domain
+DOMAIN=live-ac.tech
+
+# Database
+DB_NAME=hvac_db
+DB_USERNAME=postgres
+DB_PASSWORD=YOUR_SECURE_DB_PASSWORD
+
+# Add all other variables from .env.example
+```
+
+### Step 4: Create GitLab Deploy Token (for server to pull images)
+
+1. Go to GitLab → **Settings** → **Repository** → **Deploy tokens**
+2. Create a token with `read_registry` scope
+3. Use this token as `CI_REGISTRY_PASSWORD` on the server
+
+### Step 5: Copy docker-compose.deploy.yml to Server
+
+```bash
+scp docker-compose.deploy.yml root@64.227.144.94:/opt/hvac/
+```
+
+### How It Works
+
+1. **On Push to `main`**: Pipeline automatically triggers
+2. **Build Stage**: Builds Docker images and pushes to GitLab Container Registry
+3. **Deploy Stage**:
+   - SSHs into production server
+   - Pulls latest images from registry
+   - Restarts containers with zero-downtime
+   - Cleans up old images
+
+### Manual Deployment Commands
+
+```bash
+# On production server
+cd /opt/hvac
+
+# Pull latest images
+docker compose -f docker-compose.deploy.yml pull
+
+# Restart services
+docker compose -f docker-compose.deploy.yml up -d --remove-orphans
+
+# View logs
+docker compose -f docker-compose.deploy.yml logs -f
+```
+
+### Rollback to Previous Version
+
+```bash
+# On production server - deploy specific tag
+export IMAGE_TAG=abc123sha
+docker compose -f docker-compose.deploy.yml up -d
+```
+
+Or trigger manual rollback job in GitLab CI/CD pipeline.
+
+---
+
+## Future: Separate Repositories
+
+When the applications are moved to separate GitLab repositories, each repo will need its own `.gitlab-ci.yml`:
+
+### Backend Repository `.gitlab-ci.yml`
+
+```yaml
+stages:
+  - build
+  - deploy
+
+variables:
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: ""
+
+build:
+  stage: build
+  image: docker:24
+  services:
+    - docker:24-dind
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - docker build -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA -t $CI_REGISTRY_IMAGE:latest .
+    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+    - docker push $CI_REGISTRY_IMAGE:latest
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+  tags:
+    - docker
+
+deploy:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache openssh-client
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh && chmod 700 ~/.ssh
+    - echo "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
+  script:
+    - |
+      ssh root@$SERVER_IP << 'EOF'
+        cd /opt/hvac
+        docker compose -f docker-compose.deploy.yml pull backend
+        docker compose -f docker-compose.deploy.yml up -d --no-deps backend
+        docker image prune -f
+      EOF
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+  environment:
+    name: production
+  tags:
+    - docker
+```
+
+### Customer Portal Repository `.gitlab-ci.yml`
+
+```yaml
+stages:
+  - build
+  - deploy
+
+variables:
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: ""
+
+build:
+  stage: build
+  image: docker:24
+  services:
+    - docker:24-dind
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - |
+      docker build \
+        --build-arg NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
+        --build-arg NEXT_PUBLIC_GOOGLE_CLIENT_ID=$NEXT_PUBLIC_GOOGLE_CLIENT_ID \
+        -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA \
+        -t $CI_REGISTRY_IMAGE:latest .
+    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+    - docker push $CI_REGISTRY_IMAGE:latest
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+  tags:
+    - docker
+
+deploy:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache openssh-client
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh && chmod 700 ~/.ssh
+    - echo "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
+  script:
+    - |
+      ssh root@$SERVER_IP << 'EOF'
+        cd /opt/hvac
+        docker compose -f docker-compose.deploy.yml pull customer-portal
+        docker compose -f docker-compose.deploy.yml up -d --no-deps customer-portal
+        docker image prune -f
+      EOF
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+  environment:
+    name: production
+  tags:
+    - docker
+```
+
+### Updated docker-compose.deploy.yml for Separate Repos
+
+Update the image references on the production server:
+
+```yaml
+services:
+  backend:
+    image: registry.gitlab.com/YOUR_GROUP/backend:${BACKEND_TAG:-latest}
+    # ... rest of config
+
+  customer-portal:
+    image: registry.gitlab.com/YOUR_GROUP/customer-portal:${PORTAL_TAG:-latest}
+    # ... rest of config
 ```
 
 ---

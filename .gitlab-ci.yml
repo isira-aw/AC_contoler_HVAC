@@ -1,16 +1,27 @@
+# =====================================================
+# GitLab CI/CD Pipeline for HVAC Multi-App Deployment
+# =====================================================
+# This pipeline builds and deploys two applications:
+# - backend (Spring Boot API)
+# - customer-portal (Next.js Frontend)
+#
+# Automatic deployment triggers on merge to main branch
+# =====================================================
+
 stages:
   - build
-  - test
   - deploy
 
 variables:
   DOCKER_DRIVER: overlay2
   DOCKER_TLS_CERTDIR: ""
+  # Image names
+  BACKEND_IMAGE: $CI_REGISTRY_IMAGE/backend
+  PORTAL_IMAGE: $CI_REGISTRY_IMAGE/customer-portal
 
 # =====================================================
-# BUILD STAGE
+# BUILD STAGE - Backend
 # =====================================================
-
 build-backend:
   stage: build
   image: docker:24
@@ -19,16 +30,31 @@ build-backend:
   before_script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
   script:
-    - docker build -t $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA -t $CI_REGISTRY_IMAGE/backend:latest ./backend
-    - docker push $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA
-    - docker push $CI_REGISTRY_IMAGE/backend:latest
-  only:
-    - main
-    - master
-    - develop
+    - echo "Building Backend Docker image..."
+    - docker build
+        -t $BACKEND_IMAGE:$CI_COMMIT_SHA
+        -t $BACKEND_IMAGE:$CI_COMMIT_REF_SLUG
+        -t $BACKEND_IMAGE:latest
+        ./backend
+    - docker push $BACKEND_IMAGE:$CI_COMMIT_SHA
+    - docker push $BACKEND_IMAGE:$CI_COMMIT_REF_SLUG
+    - docker push $BACKEND_IMAGE:latest
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master"'
+      changes:
+        - backend/**/*
+    - if: '$CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master"'
+      when: manual
+      allow_failure: true
+    - if: '$CI_COMMIT_BRANCH == "develop"'
+      changes:
+        - backend/**/*
   tags:
     - docker
 
+# =====================================================
+# BUILD STAGE - Customer Portal
+# =====================================================
 build-customer-portal:
   stage: build
   image: docker:24
@@ -37,41 +63,37 @@ build-customer-portal:
   before_script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
   script:
+    - echo "Building Customer Portal Docker image..."
     - |
       docker build \
-        --build-arg NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
+        --build-arg NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-https://api.live-ac.tech} \
         --build-arg NEXT_PUBLIC_GOOGLE_CLIENT_ID=$NEXT_PUBLIC_GOOGLE_CLIENT_ID \
-        -t $CI_REGISTRY_IMAGE/customer-portal:$CI_COMMIT_SHA \
-        -t $CI_REGISTRY_IMAGE/customer-portal:latest \
+        -t $PORTAL_IMAGE:$CI_COMMIT_SHA \
+        -t $PORTAL_IMAGE:$CI_COMMIT_REF_SLUG \
+        -t $PORTAL_IMAGE:latest \
         ./customer_portal
-    - docker push $CI_REGISTRY_IMAGE/customer-portal:$CI_COMMIT_SHA
-    - docker push $CI_REGISTRY_IMAGE/customer-portal:latest
-  only:
-    - main
-    - master
-    - develop
+    - docker push $PORTAL_IMAGE:$CI_COMMIT_SHA
+    - docker push $PORTAL_IMAGE:$CI_COMMIT_REF_SLUG
+    - docker push $PORTAL_IMAGE:latest
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master"'
+      changes:
+        - customer_portal/**/*
+    - if: '$CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master"'
+      when: manual
+      allow_failure: true
+    - if: '$CI_COMMIT_BRANCH == "develop"'
+      changes:
+        - customer_portal/**/*
   tags:
     - docker
 
 # =====================================================
-# TEST STAGE (Optional - uncomment when tests exist)
+# DEPLOY STAGE - Automatic Production Deployment
 # =====================================================
-
-# test-backend:
-#   stage: test
-#   image: maven:3.9-eclipse-temurin-17
-#   script:
-#     - cd backend
-#     - mvn test
-#   only:
-#     - main
-#     - master
-#     - develop
-
+# Triggers automatically when code is merged to main
+# Uses SSH to connect to production server and pull latest images
 # =====================================================
-# DEPLOY STAGE
-# =====================================================
-
 deploy-production:
   stage: deploy
   image: alpine:latest
@@ -84,17 +106,35 @@ deploy-production:
     - echo "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
     - chmod 644 ~/.ssh/known_hosts
   script:
+    - echo "Deploying to production server at $SERVER_IP..."
     - |
-      ssh root@$SERVER_IP << 'ENDSSH'
+      ssh -o StrictHostKeyChecking=no root@$SERVER_IP << 'ENDSSH'
+        set -e
+        echo "=== Starting deployment ==="
+
+        # Navigate to deployment directory
         cd /opt/hvac
-        docker compose pull
-        docker compose up -d --remove-orphans
-        docker system prune -f
+
+        # Login to GitLab Container Registry
+        echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+
+        # Pull latest images
+        echo "Pulling latest images..."
+        docker compose -f docker-compose.deploy.yml pull
+
+        # Restart services with zero-downtime
+        echo "Restarting services..."
+        docker compose -f docker-compose.deploy.yml up -d --remove-orphans
+
+        # Cleanup old images
+        echo "Cleaning up old images..."
+        docker image prune -f
+
+        echo "=== Deployment completed successfully ==="
       ENDSSH
-  only:
-    - main
-    - master
-  when: manual
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master"'
+      when: on_success
   environment:
     name: production
     url: https://live-ac.tech
@@ -102,21 +142,38 @@ deploy-production:
     - docker
 
 # =====================================================
-# DEPLOY TO DOKPLOY (Alternative)
+# DEPLOY STAGE - Manual Rollback Option
 # =====================================================
-
-deploy-dokploy:
+rollback-production:
   stage: deploy
-  image: curlimages/curl:latest
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache openssh-client
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - echo "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
   script:
+    - echo "Rolling back to previous version..."
     - |
-      curl -X POST "$DOKPLOY_WEBHOOK_URL" \
-        -H "Content-Type: application/json" \
-        -d '{"ref": "'"$CI_COMMIT_REF_NAME"'", "sha": "'"$CI_COMMIT_SHA"'"}'
-  only:
-    - main
-    - master
-  when: manual
+      ssh -o StrictHostKeyChecking=no root@$SERVER_IP << ENDSSH
+        set -e
+        cd /opt/hvac
+
+        # Pull specific version using ROLLBACK_TAG variable
+        docker compose -f docker-compose.deploy.yml pull
+        docker compose -f docker-compose.deploy.yml up -d --remove-orphans
+
+        echo "Rollback completed"
+      ENDSSH
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master"'
+      when: manual
+      allow_failure: true
   environment:
     name: production
     url: https://live-ac.tech
+  tags:
+    - docker
