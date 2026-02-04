@@ -41,6 +41,16 @@ public class AuthController {
         }
     }
 
+    @PostMapping("/login/direct")
+    public ResponseEntity<?> directLogin(@Valid @RequestBody AuthRequest request) {
+        try {
+            AuthResponse response = authService.directLogin(request);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @PostMapping("/verify")
     public ResponseEntity<?> verifyAndLogin(@Valid @RequestBody VerifyCodeRequest request) {
         try {

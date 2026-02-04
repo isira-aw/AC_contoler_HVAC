@@ -185,4 +185,31 @@ public class AuthService {
     private String generateRandomPassword() {
         return java.util.UUID.randomUUID().toString();
     }
+
+    /**
+     * Direct login for customers - no email verification required
+     */
+    public AuthResponse directLogin(AuthRequest request) {
+        // Validate credentials
+        Authentication authentication = authenticationManager.authenticate(
+            new UsernamePasswordAuthenticationToken(
+                request.getUsername(),
+                request.getPassword()
+            )
+        );
+
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        User user = userRepository.findByUsername(request.getUsername())
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+        String token = jwtService.generateToken(userDetails);
+
+        return new AuthResponse(
+            token,
+            user.getUsername(),
+            user.getEmail(),
+            user.getRole().name(),
+            jwtService.getExpirationTime()
+        );
+    }
 }
