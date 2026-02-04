@@ -197,25 +197,41 @@ export default function HomePage() {
         html {
           scroll-behavior: smooth;
         }
+
+        /* Mobile optimizations */
+        @media (max-width: 768px) {
+          .animate-on-scroll {
+            transform: translateY(20px);
+          }
+          
+          .animate-left, .animate-right {
+            transform: translateY(20px);
+          }
+          
+          .animate-left.animate-visible, 
+          .animate-right.animate-visible {
+            transform: translateY(0);
+          }
+        }
       `}</style>
 
       <div className="min-h-screen" style={{ backgroundColor: 'var(--background)' }}>
         {/* Header */}
         <header
-          className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'py-3 shadow-lg' : 'py-4'
-            }`}
+          className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+            isScrolled ? 'py-2 md:py-3 shadow-lg' : 'py-3 md:py-4'
+          }`}
           style={{ backgroundColor: 'rgba(9, 65, 102, 0.95)', backdropFilter: 'blur(12px)' }}
         >
           <div className="max-w-7xl mx-auto px-4 md:px-6 flex justify-between items-center">
             {/* Logo */}
             <Link href="/" className="flex items-center gap-2 text-white">
-              <CloudIcon className="w-7 h-7" />
-              <span className="text-lg md:text-xl font-bold tracking-tight">Smart HVAC</span>
+              <CloudIcon className="w-6 h-6 md:w-7 md:h-7" />
+              <span className="text-base md:text-lg lg:text-xl font-bold tracking-tight">Smart HVAC</span>
             </Link>
 
             {/* Desktop menu */}
-            <div className="hidden md:flex items-center space-x-2">
-              {/* Navigation Section Buttons */}
+            <div className="hidden lg:flex items-center space-x-2">
               {['What It Is', 'Features', 'How It Works', 'About Us', 'FAQ'].map((item) => (
                 <button
                   key={item}
@@ -226,17 +242,13 @@ export default function HomePage() {
                 </button>
               ))}
 
-
-              <div className="border-l border-white ">
-
-                {/* Dashboard Link */}
+              <div className="border-l border-white/20 pl-2 flex items-center gap-2">
                 <Link href="/dashboard" className="text-white hover:bg-white/10 px-3 py-2 rounded text-sm font-medium">
                   Dashboard
                 </Link>
 
-                {/* User or Login */}
                 {user ? (
-                  <span className="px-3 py-2 font-medium text-white">
+                  <span className="px-3 py-2 font-medium text-white text-sm">
                     {user.username}
                   </span>
                 ) : (
@@ -248,21 +260,19 @@ export default function HomePage() {
                   </Link>
                 )}
 
-                {/* Register Button */}
-                <Link href="/register" className="bg-white text-primary px-4 py-2 rounded-lg hover:bg-gray-100 font-medium">
+                <Link href="/register" className="bg-white text-primary px-4 py-2 rounded-lg hover:bg-gray-100 font-medium text-sm">
                   Register
                 </Link>
 
-                {/* Home Icon */}
-                <Link href="/" className="bg-white/20 text-white px-4 py-2 rounded-lg hover:bg-white/30 ml-2">
-                  <i className="lni lni-home text-xl"></i>
+                <Link href="/" className="bg-white/20 text-white px-3 py-2 rounded-lg hover:bg-white/30">
+                  <i className="lni lni-home text-lg"></i>
                 </Link>
               </div>
             </div>
 
             {/* Mobile hamburger button */}
             <button
-              className="md:hidden p-2 hover:opacity-75 text-white"
+              className="lg:hidden p-2 hover:opacity-75 text-white"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
               <i className={`lni ${mobileMenuOpen ? 'lni-close' : 'lni-menu'} text-xl`}></i>
@@ -271,9 +281,8 @@ export default function HomePage() {
 
           {/* Mobile menu dropdown */}
           {mobileMenuOpen && (
-            <div className="md:hidden mt-4 pt-4 border-t border-white/20 px-4">
+            <div className="lg:hidden mt-4 pt-4 border-t border-white/20 px-4">
               <div className="flex flex-col space-y-3">
-                {/* Navigation Section Buttons */}
                 {['What It Is', 'Features', 'How It Works', 'About Us', 'FAQ'].map((item) => (
                   <button
                     key={item}
@@ -287,33 +296,34 @@ export default function HomePage() {
                   </button>
                 ))}
 
-                {/* Dashboard Link */}
-                <Link href="/dashboard" className="px-3 py-2 hover:bg-white/10 rounded text-center">
+                <Link 
+                  href="/dashboard" 
+                  className="text-white/90 hover:bg-white/10 px-3 py-2 rounded text-left font-medium"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
                   Dashboard
                 </Link>
 
-                {/* User or Login */}
                 {user ? (
-                  <span className="px-3 py-2 font-medium text-center">
+                  <span className="px-3 py-2 font-medium text-white text-center">
                     {user.username}
                   </span>
                 ) : (
                   <Link
                     href="/login"
-                    className="hover:bg-white/10 px-3 py-2 rounded text-center"
+                    className="text-white/90 hover:bg-white/10 px-3 py-2 rounded text-center font-medium"
+                    onClick={() => setMobileMenuOpen(false)}
                   >
                     Login
                   </Link>
                 )}
 
-                {/* Register Button */}
-                <Link href="/register" className="bg-white text-primary px-4 py-2 rounded-lg hover:bg-gray-100 text-center">
+                <Link 
+                  href="/register" 
+                  className="bg-white text-primary px-4 py-2 rounded-lg hover:bg-gray-100 text-center font-medium"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
                   Register
-                </Link>
-
-                {/* Home Icon */}
-                <Link href="/" className="px-3 py-2 bg-white/10 rounded text-center">
-                  <i className="lni lni-home text-xl md:text-2xl"></i>
                 </Link>
               </div>
             </div>
@@ -321,7 +331,7 @@ export default function HomePage() {
         </header>
 
         {/* SECTION 1: HERO */}
-        <section className="min-h-screen flex items-center pt-32 pb-20 px-6 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #041c2c 0%, #062d47 50%, #041c2c 100%)' }}>
+        <section className="min-h-screen flex items-center pt-24 md:pt-32 pb-12 md:pb-20 px-4 md:px-6 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #041c2c 0%, #062d47 50%, #041c2c 100%)' }}>
           <div className="absolute inset-0 overflow-hidden">
             {[...Array(8)].map((_, i) => (
               <div
@@ -340,30 +350,28 @@ export default function HomePage() {
               />
             ))}
             <div
-              className="hero-glow absolute w-[600px] h-[600px] rounded-full top-1/2 left-1/2"
+              className="hero-glow absolute w-[300px] h-[300px] md:w-[600px] md:h-[600px] rounded-full top-1/2 left-1/2"
               style={{ background: 'radial-gradient(circle, rgba(9, 65, 102, 0.3) 0%, transparent 70%)' }}
             />
           </div>
 
-          <div className="max-w-5xl mx-auto text-center relative z-10">
-            <div className="animate-on-scroll inline-flex items-center gap-2 bg-white/10 border border-white/20 px-5 py-2 rounded-full mb-8 backdrop-blur-sm">
-              <BoltIcon className="w-4 h-4 text-cyan-400" />
-              <span className="text-[var(--primary-lighter)] text-sm font-medium">Next-Gen Climate Control Technology</span>
+          <div className="max-w-5xl mx-auto text-center relative z-10 w-full">
+            <div className="animate-on-scroll inline-flex items-center gap-2 bg-white/10 border border-white/20 px-4 md:px-5 py-2 rounded-full mb-6 md:mb-8 backdrop-blur-sm">
+              <BoltIcon className="w-3 h-3 md:w-4 md:h-4 text-cyan-400" />
+              <span className="text-[var(--primary-lighter)] text-xs md:text-sm font-medium">Next-Gen Climate Control Technology</span>
             </div>
 
-            <h1 className="animate-on-scroll stagger-1 text-4xl md:text-6xl lg:text-7xl font-black text-white mb-6 tracking-tight leading-tight">
+            <h1 className="animate-on-scroll stagger-1 text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black text-white mb-4 md:mb-6 tracking-tight leading-tight px-4">
               Smart HVAC<br />
               <span className="bg-gradient-to-r from-[var(--primary-lighter)] to-cyan-400 bg-clip-text text-transparent">
                 IoT Control System
               </span>
             </h1>
-
-
           </div>
         </section>
 
         {/* SECTION 2: WHAT IT IS */}
-        <section id="what-it-is" className="py-24 px-6 bg-white">
+        <section id="what-it-is" className="py-12 md:py-16 lg:py-24 px-4 md:px-6 bg-white">
           <SectionHeader
             label="WHAT IT IS"
             title="A Complete"
@@ -373,57 +381,57 @@ export default function HomePage() {
           />
 
           <div className="max-w-7xl mx-auto">
-            <div className="grid lg:grid-cols-2 gap-16 items-center">
-              <div className="animate-on-scroll animate-left relative">
+            <div className="grid lg:grid-cols-2 gap-8 md:gap-12 lg:gap-16 items-center">
+              <div className="animate-on-scroll animate-left relative order-2 lg:order-1">
                 <div
-                  className="rounded-3xl p-8 text-white relative overflow-hidden"
+                  className="rounded-2xl md:rounded-3xl p-6 md:p-8 text-white relative overflow-hidden"
                   style={{ background: 'linear-gradient(135deg, var(--primary), var(--primary-dark))' }}
                 >
                   <div className="absolute -top-1/2 -right-1/2 w-full h-full bg-[radial-gradient(circle,rgba(255,255,255,0.1)_0%,transparent_60%)]" />
-                  <h3 className="text-2xl font-bold mb-4 relative z-10">Complete Control Center</h3>
-                  <p className="text-white/90 leading-relaxed relative z-10">
+                  <h3 className="text-xl md:text-2xl font-bold mb-3 md:mb-4 relative z-10">Complete Control Center</h3>
+                  <p className="text-white/90 leading-relaxed relative z-10 text-sm md:text-base">
                     A unified dashboard that brings all your HVAC systems together. Monitor, analyze, and control everything from one intelligent platform designed for modern building management.
                   </p>
                 </div>
 
-                <div className="hidden lg:flex floating-feature absolute -top-5 -right-5 bg-white rounded-2xl px-4 py-3 shadow-lg items-center gap-3">
+                <div className="hidden xl:flex floating-feature absolute -top-5 -right-5 bg-white rounded-2xl px-4 py-3 shadow-lg items-center gap-3">
                   <DashboardIcon className="w-5 h-5 text-[var(--primary)]" />
                   <span className="font-semibold text-gray-800 text-sm">Real-time Dashboard</span>
                 </div>
-                <div className="hidden lg:flex floating-feature absolute -bottom-5 -left-5 bg-white rounded-2xl px-4 py-3 shadow-lg items-center gap-3" style={{ animationDelay: '1s' }}>
+                <div className="hidden xl:flex floating-feature absolute -bottom-5 -left-5 bg-white rounded-2xl px-4 py-3 shadow-lg items-center gap-3" style={{ animationDelay: '1s' }}>
                   <BellIcon className="w-5 h-5 text-[var(--primary)]" />
                   <span className="font-semibold text-gray-800 text-sm">Smart Alerts</span>
                 </div>
-                <div className="hidden lg:flex floating-feature absolute top-1/2 -right-10 bg-white rounded-2xl px-4 py-3 shadow-lg items-center gap-3" style={{ animationDelay: '2s' }}>
+                <div className="hidden xl:flex floating-feature absolute top-1/2 -right-10 bg-white rounded-2xl px-4 py-3 shadow-lg items-center gap-3" style={{ animationDelay: '2s' }}>
                   <ChartIcon className="w-5 h-5 text-[var(--primary)]" />
                   <span className="font-semibold text-gray-800 text-sm">Analytics</span>
                 </div>
               </div>
 
-              <div className="animate-on-scroll animate-right">
-                <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-6 leading-tight">
+              <div className="animate-on-scroll animate-right order-1 lg:order-2">
+                <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-gray-900 mb-4 md:mb-6 leading-tight">
                   The <span style={{ color: 'var(--primary)' }}>Smart Solution</span> You've Been Waiting For
                 </h2>
-                <p className="text-gray-500 text-lg mb-8 leading-relaxed">
+                <p className="text-gray-500 text-base md:text-lg mb-6 md:mb-8 leading-relaxed">
                   Smart HVAC transforms reactive maintenance into proactive optimization. Our platform gives you complete visibility and control over your entire climate infrastructure.
                 </p>
 
-                <div className="space-y-5">
+                <div className="space-y-4 md:space-y-5">
                   {[
-                    { icon: <EyeIcon className="w-5 h-5 text-white" />, title: '360° Visibility', desc: 'See every unit, every metric, every moment in real-time' },
-                    { icon: <CpuIcon className="w-5 h-5 text-white" />, title: 'AI Optimization', desc: 'Machine learning that continuously improves efficiency' },
-                    { icon: <CogIcon className="w-5 h-5 text-white" />, title: 'Automated Actions', desc: 'Set rules and let the system handle the rest' },
+                    { icon: <EyeIcon className="w-4 h-4 md:w-5 md:h-5 text-white" />, title: '360° Visibility', desc: 'See every unit, every metric, every moment in real-time' },
+                    { icon: <CpuIcon className="w-4 h-4 md:w-5 md:h-5 text-white" />, title: 'AI Optimization', desc: 'Machine learning that continuously improves efficiency' },
+                    { icon: <CogIcon className="w-4 h-4 md:w-5 md:h-5 text-white" />, title: 'Automated Actions', desc: 'Set rules and let the system handle the rest' },
                   ].map((feature) => (
-                    <div key={feature.title} className="flex items-start gap-4">
+                    <div key={feature.title} className="flex items-start gap-3 md:gap-4">
                       <div
-                        className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+                        className="w-10 h-10 md:w-12 md:h-12 rounded-xl flex items-center justify-center flex-shrink-0"
                         style={{ background: 'linear-gradient(135deg, var(--primary-light), var(--primary))' }}
                       >
                         {feature.icon}
                       </div>
                       <div>
-                        <h4 className="font-semibold text-gray-800 mb-1">{feature.title}</h4>
-                        <p className="text-gray-500 text-sm">{feature.desc}</p>
+                        <h4 className="font-semibold text-gray-800 mb-1 text-sm md:text-base">{feature.title}</h4>
+                        <p className="text-gray-500 text-xs md:text-sm">{feature.desc}</p>
                       </div>
                     </div>
                   ))}
@@ -431,28 +439,28 @@ export default function HomePage() {
               </div>
             </div>
           </div>
-          <br />
+          
+          <div className="mt-12 md:mt-16 lg:mt-20"></div>
 
           <div className="max-w-7xl mx-auto">
-
-            <div className="grid md:grid-cols-3 gap-8">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
               {[
                 {
-                  icon: <NetworkIcon className="w-8 h-8 text-white" />,
+                  icon: <NetworkIcon className="w-6 h-6 md:w-8 md:h-8 text-white" />,
                   iconBg: 'linear-gradient(135deg, #0c5a8a, #094166)',
                   title: 'IoT Connected',
                   description: 'Connect all your HVAC units to a unified platform. Real-time monitoring and control at your fingertips.',
                   features: ['Multi-protocol support', 'Seamless device pairing', 'Edge computing enabled'],
                 },
                 {
-                  icon: <CpuIcon className="w-8 h-8 text-white" />,
+                  icon: <CpuIcon className="w-6 h-6 md:w-8 md:h-8 text-white" />,
                   iconBg: 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
                   title: 'AI-Powered',
                   description: 'Machine learning algorithms predict maintenance needs and optimize energy consumption automatically.',
                   features: ['Predictive maintenance', 'Smart scheduling', 'Anomaly detection'],
                 },
                 {
-                  icon: <MobileIcon className="w-8 h-8 text-white" />,
+                  icon: <MobileIcon className="w-6 h-6 md:w-8 md:h-8 text-white" />,
                   iconBg: 'linear-gradient(135deg, #06b6d4, #0891b2)',
                   title: 'Universal Access',
                   description: 'Control your systems from any device, anywhere. Web, mobile, and API access for complete flexibility.',
@@ -461,19 +469,19 @@ export default function HomePage() {
               ].map((card, i) => (
                 <div
                   key={card.title}
-                  className={`animate-on-scroll animate-scale stagger-${i + 1} bg-gradient-to-br from-gray-50 to-white border border-gray-100 rounded-3xl p-8 relative overflow-hidden transition-all duration-400 hover:-translate-y-2 hover:shadow-2xl group`}
+                  className={`animate-on-scroll animate-scale stagger-${i + 1} bg-gradient-to-br from-gray-50 to-white border border-gray-100 rounded-2xl md:rounded-3xl p-6 md:p-8 relative overflow-hidden transition-all duration-400 hover:-translate-y-2 hover:shadow-2xl group`}
                 >
                   <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[var(--primary)] to-cyan-500 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-400" />
-                  <div className="w-20 h-20 rounded-2xl flex items-center justify-center mb-6" style={{ background: card.iconBg }}>
+                  <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center mb-4 md:mb-6" style={{ background: card.iconBg }}>
                     {card.icon}
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-3">{card.title}</h3>
-                  <p className="text-gray-500 mb-6 leading-relaxed">{card.description}</p>
-                  <ul className="space-y-3">
+                  <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-2 md:mb-3">{card.title}</h3>
+                  <p className="text-gray-500 mb-4 md:mb-6 leading-relaxed text-sm md:text-base">{card.description}</p>
+                  <ul className="space-y-2 md:space-y-3">
                     {card.features.map((feature) => (
-                      <li key={feature} className="flex items-center gap-3 text-gray-600 text-sm">
-                        <CheckCircleIcon className="w-5 h-5 text-emerald-500" />
-                        {feature}
+                      <li key={feature} className="flex items-center gap-2 md:gap-3 text-gray-600 text-xs md:text-sm">
+                        <CheckCircleIcon className="w-4 h-4 md:w-5 md:h-5 text-emerald-500 flex-shrink-0" />
+                        <span>{feature}</span>
                       </li>
                     ))}
                   </ul>
@@ -484,7 +492,7 @@ export default function HomePage() {
         </section>
 
         {/* SECTION 5: KEY FEATURES */}
-        <section id="features" className="py-12 px-6 bg-white overflow-hidden">
+        <section id="features" className="py-12 md:py-16 lg:py-24 px-4 md:px-6 bg-white overflow-hidden">
           <div className="max-w-7xl mx-auto">
             <SectionHeader
               label="KEY FEATURES"
@@ -493,7 +501,7 @@ export default function HomePage() {
               description="Powerful tools designed for modern building management"
             />
 
-            <div className="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-gray-200 border border-gray-200 rounded-[2.5rem] overflow-hidden">
+            <div className="mt-12 md:mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-gray-200 border border-gray-200 rounded-3xl md:rounded-[2.5rem] overflow-hidden">
               {[
                 { icon: <DashboardIcon />, color: "text-blue-600", title: 'Real-time Monitoring', desc: 'Track temperature, humidity, and energy usage in real-time.', tag: 'Core' },
                 { icon: <CogIcon />, color: "text-purple-600", title: 'Remote Control', desc: 'Adjust fan speed and modes from anywhere via smartphone.', tag: 'Remote' },
@@ -504,30 +512,27 @@ export default function HomePage() {
               ].map((feature, i) => (
                 <div
                   key={feature.title}
-                  className="group relative bg-white p-10 overflow-hidden transition-all duration-500 min-h-[250px] flex flex-col"
+                  className="group relative bg-white p-6 md:p-10 overflow-hidden transition-all duration-500 min-h-[220px] md:min-h-[250px] flex flex-col"
                 >
-                  {/* THE BIG ICON BACKGROUND - Fixed Sizing */}
-                  <div className={`absolute -right-16 -bottom-16 w-64 h-64 opacity-[0.2] transition-all duration-700 ease-in-out pointer-events-none transform group-hover:scale-150 group-hover:-rotate-12 group-hover:opacity-[0.1] ${feature.color}`}>
-                    {/* Cloning the icon and ensuring it fills the parent div */}
+                  <div className={`absolute -right-12 md:-right-16 -bottom-12 md:-bottom-16 w-48 h-48 md:w-64 md:h-64 opacity-[0.2] transition-all duration-700 ease-in-out pointer-events-none transform group-hover:scale-150 group-hover:-rotate-12 group-hover:opacity-[0.1] ${feature.color}`}>
                     {React.cloneElement(feature.icon, { className: "w-full h-full" })}
                   </div>
 
                   <div className="relative z-10 flex flex-col h-full max-w-[280px]">
-                    <div className="mb-8 flex items-center gap-3">
+                    <div className="mb-6 md:mb-8 flex items-center gap-3">
                       <div className={`h-1 w-6 rounded-full bg-current ${feature.color} transition-all duration-500 group-hover:w-12`} />
                       <span className={`text-[10px] font-black tracking-widest uppercase ${feature.color}`}>
                         {feature.tag}
                       </span>
                     </div>
 
-                    <h3 className="text-2xl font-bold text-gray-900 mb-4 tracking-tight">
+                    <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-3 md:mb-4 tracking-tight">
                       {feature.title}
                     </h3>
 
-                    <p className="text-gray-500 text-base leading-relaxed">
+                    <p className="text-gray-500 text-sm md:text-base leading-relaxed">
                       {feature.desc}
                     </p>
-
                   </div>
                 </div>
               ))}
@@ -535,9 +540,8 @@ export default function HomePage() {
           </div>
         </section>
 
-
         {/* SECTION 6: HOW IT WORKS */}
-        <section id="how-it-works" className="py-24 px-6 bg-slate-50">
+        <section id="how-it-works" className="py-12 md:py-16 lg:py-24 px-4 md:px-6 bg-slate-50">
           <SectionHeader
             label="HOW IT WORKS"
             title="Get Started in"
@@ -545,20 +549,19 @@ export default function HomePage() {
             description="From signup to full control in minutes, not months"
           />
           <div className="max-w-7xl mx-auto">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
-
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-12 lg:gap-16 items-center">
               {/* LEFT: Navigation Rail */}
-              <div className="lg:col-span-5 space-y-4">
+              <div className="lg:col-span-5 space-y-3 md:space-y-4">
                 {steps.map((step, idx) => (
                   <button
                     key={step.num}
                     onClick={() => setActiveTab(idx)}
-                    className={`w-full text-left p-8 rounded-3xl transition-all duration-500 relative overflow-hidden ${activeTab === idx
-                      ? 'bg-white shadow-xl shadow-blue-900/5 scale-105'
-                      : 'hover:bg-white/50 opacity-60'
-                      }`}
+                    className={`w-full text-left p-6 md:p-8 rounded-2xl md:rounded-3xl transition-all duration-500 relative overflow-hidden ${
+                      activeTab === idx
+                        ? 'bg-white shadow-xl shadow-blue-900/5 scale-105'
+                        : 'hover:bg-white/50 opacity-60'
+                    }`}
                   >
-                    {/* Active Progress Bar (Vertical) */}
                     {activeTab === idx && (
                       <motion.div
                         layoutId="activeBar"
@@ -568,12 +571,12 @@ export default function HomePage() {
                       />
                     )}
 
-                    <div className="flex items-center gap-4 mb-2">
+                    <div className="flex items-center gap-3 md:gap-4 mb-2">
                       <span className={`text-xs font-bold tracking-widest uppercase ${activeTab === idx ? 'text-primary' : 'text-gray-400'}`}>
                         {step.label}
                       </span>
                     </div>
-                    <h3 className={`text-2xl font-bold ${activeTab === idx ? 'text-gray-900' : 'text-gray-500'}`}>
+                    <h3 className={`text-xl md:text-2xl font-bold ${activeTab === idx ? 'text-gray-900' : 'text-gray-500'}`}>
                       {step.title}
                     </h3>
 
@@ -583,7 +586,7 @@ export default function HomePage() {
                           initial={{ height: 0, opacity: 0 }}
                           animate={{ height: 'auto', opacity: 1 }}
                           exit={{ height: 0, opacity: 0 }}
-                          className="text-gray-500 mt-4 leading-relaxed overflow-hidden"
+                          className="text-gray-500 mt-3 md:mt-4 leading-relaxed overflow-hidden text-sm md:text-base"
                         >
                           {step.desc}
                         </motion.p>
@@ -594,8 +597,7 @@ export default function HomePage() {
               </div>
 
               {/* RIGHT: Visual Showcase */}
-              <div className="lg:col-span-7 relative h-[500px] w-full bg-gray-900 rounded-[2.5rem] shadow-2xl overflow-hidden border-[8px] border-white">
-                {/* Ambient Background Glow */}
+              <div className="lg:col-span-7 relative h-[350px] md:h-[450px] lg:h-[500px] w-full bg-gray-900 rounded-2xl md:rounded-[2.5rem] shadow-2xl overflow-hidden border-4 md:border-[8px] border-white">
                 <div className={`absolute inset-0 opacity-20 transition-colors duration-700 ${steps[activeTab].color}`} />
 
                 <AnimatePresence mode="wait">
@@ -605,25 +607,22 @@ export default function HomePage() {
                     animate={{ y: 0, opacity: 1 }}
                     exit={{ y: -20, opacity: 0 }}
                     transition={{ duration: 0.4 }}
-                    className="absolute inset-0 flex flex-col items-center justify-center p-12 text-center"
+                    className="absolute inset-0 flex flex-col items-center justify-center p-8 md:p-12 text-center"
                   >
-                    {/* Replace this div with an actual <img> or <video> */}
                     <div className="w-full h-full rounded-xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center">
-                      <span className="text-white font-medium text-lg italic opacity-50">
+                      <span className="text-white font-medium text-base md:text-lg italic opacity-50 px-4">
                         [UI Mockup: {steps[activeTab].preview}]
                       </span>
                     </div>
                   </motion.div>
                 </AnimatePresence>
               </div>
-
             </div>
           </div>
         </section>
 
-
         {/* SECTION 8: ARCHITECTURE */}
-        <section className="py-24 px-6" style={{ backgroundColor: '#0a1929' }}>
+        <section className="py-12 md:py-16 lg:py-24 px-4 md:px-6" style={{ backgroundColor: '#0a1929' }}>
           <div className="max-w-7xl mx-auto">
             <SectionHeader
               label="ARCHITECTURE"
@@ -634,26 +633,26 @@ export default function HomePage() {
               dark
             />
 
-            <div className="max-w-3xl mx-auto space-y-6">
+            <div className="max-w-3xl mx-auto space-y-4 md:space-y-6">
               {[
-                { icon: <MobileIcon className="w-6 h-6 text-white" />, bg: 'linear-gradient(135deg, #0c5a8a, #094166)', title: 'Presentation Layer', desc: 'Responsive web dashboard and native mobile apps for iOS and Android', tags: ['React', 'React Native', 'TypeScript'] },
-                { icon: <CodeIcon className="w-6 h-6 text-white" />, bg: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', title: 'Application Layer', desc: 'RESTful APIs, WebSocket connections, and business logic processing', tags: ['Node.js', 'Express', 'GraphQL'] },
-                { icon: <CpuIcon className="w-6 h-6 text-white" />, bg: 'linear-gradient(135deg, #06b6d4, #0891b2)', title: 'Intelligence Layer', desc: 'Machine learning models for prediction, optimization, and anomaly detection', tags: ['Python', 'TensorFlow', 'scikit-learn'] },
-                { icon: <NetworkIcon className="w-6 h-6 text-white" />, bg: 'linear-gradient(135deg, #10b981, #059669)', title: 'Data & IoT Layer', desc: 'Time-series database, message queuing, and device communication protocols', tags: ['PostgreSQL', 'InfluxDB', 'MQTT'] },
+                { icon: <MobileIcon className="w-5 h-5 md:w-6 md:h-6 text-white" />, bg: 'linear-gradient(135deg, #0c5a8a, #094166)', title: 'Presentation Layer', desc: 'Responsive web dashboard and native mobile apps for iOS and Android', tags: ['React', 'React Native', 'TypeScript'] },
+                { icon: <CodeIcon className="w-5 h-5 md:w-6 md:h-6 text-white" />, bg: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', title: 'Application Layer', desc: 'RESTful APIs, WebSocket connections, and business logic processing', tags: ['Node.js', 'Express', 'GraphQL'] },
+                { icon: <CpuIcon className="w-5 h-5 md:w-6 md:h-6 text-white" />, bg: 'linear-gradient(135deg, #06b6d4, #0891b2)', title: 'Intelligence Layer', desc: 'Machine learning models for prediction, optimization, and anomaly detection', tags: ['Python', 'TensorFlow', 'scikit-learn'] },
+                { icon: <NetworkIcon className="w-5 h-5 md:w-6 md:h-6 text-white" />, bg: 'linear-gradient(135deg, #10b981, #059669)', title: 'Data & IoT Layer', desc: 'Time-series database, message queuing, and device communication protocols', tags: ['PostgreSQL', 'InfluxDB', 'MQTT'] },
               ].map((layer, i) => (
                 <div
                   key={layer.title}
-                  className={`animate-on-scroll stagger-${i + 1} bg-white/[0.03] border border-white/10 rounded-2xl p-6 flex items-center gap-6 transition-all hover:bg-white/[0.06] hover:translate-x-2`}
+                  className={`animate-on-scroll stagger-${i + 1} bg-white/[0.03] border border-white/10 rounded-xl md:rounded-2xl p-4 md:p-6 flex items-center gap-4 md:gap-6 transition-all hover:bg-white/[0.06] hover:translate-x-2`}
                 >
-                  <div className="w-[60px] h-[60px] rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: layer.bg }}>
+                  <div className="w-[50px] h-[50px] md:w-[60px] md:h-[60px] rounded-xl md:rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: layer.bg }}>
                     {layer.icon}
                   </div>
-                  <div>
-                    <h4 className="text-white text-lg font-semibold mb-1">{layer.title}</h4>
-                    <p className="text-white/60 text-sm mb-3">{layer.desc}</p>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-white text-base md:text-lg font-semibold mb-1">{layer.title}</h4>
+                    <p className="text-white/60 text-xs md:text-sm mb-2 md:mb-3">{layer.desc}</p>
                     <div className="flex flex-wrap gap-2">
                       {layer.tags.map((tag) => (
-                        <span key={tag} className="bg-white/10 text-white/80 px-3 py-1 rounded-full text-xs">
+                        <span key={tag} className="bg-white/10 text-white/80 px-2 md:px-3 py-1 rounded-full text-[10px] md:text-xs">
                           {tag}
                         </span>
                       ))}
@@ -666,7 +665,7 @@ export default function HomePage() {
         </section>
 
         {/* SECTION 9: LIVE DEMO */}
-        <section id="demo" className="py-24 px-6" style={{ background: 'linear-gradient(180deg, white 0%, #f9fafb 100%)' }}>
+        <section id="demo" className="py-12 md:py-16 lg:py-24 px-4 md:px-6" style={{ background: 'linear-gradient(180deg, white 0%, #f9fafb 100%)' }}>
           <div className="max-w-7xl mx-auto">
             <SectionHeader
               label="LIVE DEMO"
@@ -675,21 +674,22 @@ export default function HomePage() {
               description="Experience the power of Smart HVAC with our interactive dashboard preview"
             />
 
-            <div className="animate-on-scroll stagger-3 bg-white border border-gray-200 rounded-3xl overflow-hidden shadow-2xl">
-              <div className="bg-gray-800 px-6 py-4 flex items-center gap-3">
-                <div className="w-3 h-3 rounded-full bg-red-500" />
-                <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                <div className="w-3 h-3 rounded-full bg-green-500" />
-                <span className="text-white text-sm ml-4">Smart HVAC Dashboard - Building A</span>
+            <div className="animate-on-scroll stagger-3 bg-white border border-gray-200 rounded-2xl md:rounded-3xl overflow-hidden shadow-2xl">
+              <div className="bg-gray-800 px-4 md:px-6 py-3 md:py-4 flex items-center gap-2 md:gap-3">
+                <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-red-500" />
+                <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-yellow-500" />
+                <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-green-500" />
+                <span className="text-white text-xs md:text-sm ml-2 md:ml-4 truncate">Smart HVAC Dashboard - Building A</span>
               </div>
 
-              <div className="p-8">
-                <div className="flex gap-4 mb-8 overflow-x-auto">
+              <div className="p-4 md:p-6 lg:p-8">
+                <div className="flex gap-2 md:gap-4 mb-6 md:mb-8 overflow-x-auto pb-2">
                   {['Overview', 'Devices', 'Analytics', 'Alerts'].map((tab, i) => (
                     <span
                       key={tab}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap ${i === 0 ? 'text-white' : 'bg-gray-100 text-gray-600'
-                        }`}
+                      className={`px-3 md:px-4 py-1.5 md:py-2 rounded-lg text-xs md:text-sm font-medium whitespace-nowrap ${
+                        i === 0 ? 'text-white' : 'bg-gray-100 text-gray-600'
+                      }`}
                       style={i === 0 ? { backgroundColor: 'var(--primary)' } : {}}
                     >
                       {tab}
@@ -697,21 +697,21 @@ export default function HomePage() {
                   ))}
                 </div>
 
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-6 mb-6 md:mb-8">
                   {[
                     { value: '23°C', label: 'Avg Temperature', color: '#ef4444' },
                     { value: '45%', label: 'Humidity Level', color: '#3b82f6' },
                     { value: '2.4kW', label: 'Energy Usage', color: '#10b981' },
                     { value: '12/12', label: 'Units Online', color: '#8b5cf6' },
                   ].map((metric) => (
-                    <div key={metric.label} className="bg-gradient-to-br from-gray-50 to-white border border-gray-100 rounded-2xl p-6 text-center transition-all hover:-translate-y-1 hover:shadow-lg">
-                      <div className="text-3xl font-extrabold mb-1" style={{ color: metric.color }}>{metric.value}</div>
-                      <div className="text-gray-500 text-sm">{metric.label}</div>
+                    <div key={metric.label} className="bg-gradient-to-br from-gray-50 to-white border border-gray-100 rounded-xl md:rounded-2xl p-3 md:p-4 lg:p-6 text-center transition-all hover:-translate-y-1 hover:shadow-lg">
+                      <div className="text-xl md:text-2xl lg:text-3xl font-extrabold mb-0.5 md:mb-1" style={{ color: metric.color }}>{metric.value}</div>
+                      <div className="text-gray-500 text-[10px] md:text-xs lg:text-sm">{metric.label}</div>
                     </div>
                   ))}
                 </div>
 
-                <div className="bg-gray-50 rounded-2xl p-6 h-[200px] flex items-end gap-2">
+                <div className="bg-gray-50 rounded-xl md:rounded-2xl p-4 md:p-6 h-[150px] md:h-[200px] flex items-end gap-1 md:gap-2">
                   {[60, 80, 45, 90, 70, 55, 85, 65, 75, 50, 95, 72].map((height, i) => (
                     <div
                       key={i}
@@ -730,7 +730,7 @@ export default function HomePage() {
         </section>
 
         {/* SECTION 12: ABOUT */}
-        <section id="about-us" className="py-24 px-6 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #0a1929 0%, #0d2137 100%)' }}>
+        <section id="about-us" className="py-12 md:py-16 lg:py-24 px-4 md:px-6 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #0a1929 0%, #0d2137 100%)' }}>
           <div className="absolute inset-0 opacity-[0.02]" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")` }} />
 
           <div className="max-w-7xl mx-auto relative z-10">
@@ -744,41 +744,41 @@ export default function HomePage() {
               dark
             />
 
-            <div className="grid lg:grid-cols-2 gap-16 items-center">
+            <div className="grid lg:grid-cols-2 gap-8 md:gap-12 lg:gap-16 items-center">
               <div className="animate-on-scroll animate-left">
-                <h3 className="text-2xl font-bold text-white mb-6">Our Story</h3>
-                <p className="text-white/70 text-lg leading-relaxed mb-4">
+                <h3 className="text-xl md:text-2xl font-bold text-white mb-4 md:mb-6">Our Story</h3>
+                <p className="text-white/70 text-base md:text-lg leading-relaxed mb-3 md:mb-4">
                   Smart HVAC was born from a simple frustration: why is managing building climate so complicated in 2026? We set out to build the platform we wished existed.
                 </p>
-                <p className="text-white/70 text-lg leading-relaxed mb-8">
+                <p className="text-white/70 text-base md:text-lg leading-relaxed mb-6 md:mb-8">
                   Our team combines decades of experience in IoT, machine learning, and building automation. We've worked with Fortune 500 companies, managed data centers, and now we're bringing that expertise to everyone.
                 </p>
 
-                <div className="flex gap-12">
+                <div className="flex flex-wrap gap-6 md:gap-8 lg:gap-12">
                   {[
                     { value: '15+', label: 'Years Experience' },
                     { value: '50+', label: 'Team Members' },
                     { value: '10K+', label: 'Happy Customers' },
                   ].map((stat) => (
                     <div key={stat.label}>
-                      <div className="text-3xl font-extrabold" style={{ color: 'var(--primary-lighter)' }}>{stat.value}</div>
-                      <div className="text-white/60 text-sm">{stat.label}</div>
+                      <div className="text-2xl md:text-3xl font-extrabold" style={{ color: 'var(--primary-lighter)' }}>{stat.value}</div>
+                      <div className="text-white/60 text-xs md:text-sm">{stat.label}</div>
                     </div>
                   ))}
                 </div>
               </div>
 
               <div className="animate-on-scroll animate-right flex justify-center">
-                <div className="bg-white/5 border border-white/10 rounded-3xl p-10 text-center backdrop-blur-sm">
+                <div className="bg-white/5 border border-white/10 rounded-2xl md:rounded-3xl p-6 md:p-8 lg:p-10 text-center backdrop-blur-sm w-full max-w-md">
                   <div
-                    className="w-[120px] h-[120px] rounded-full flex items-center justify-center mx-auto mb-6"
+                    className="w-[100px] h-[100px] md:w-[120px] md:h-[120px] rounded-full flex items-center justify-center mx-auto mb-4 md:mb-6"
                     style={{ background: 'linear-gradient(135deg, var(--primary), var(--accent))' }}
                   >
-                    <UsersIcon className="w-12 h-12 text-white" />
+                    <UsersIcon className="w-10 h-10 md:w-12 md:h-12 text-white" />
                   </div>
-                  <h4 className="text-white text-2xl font-bold mb-2">Smart HVAC Team</h4>
-                  <p className="mb-4" style={{ color: 'var(--primary-lighter)' }}>Engineering Excellence</p>
-                  <p className="text-white/60 leading-relaxed">
+                  <h4 className="text-white text-xl md:text-2xl font-bold mb-2">Smart HVAC Team</h4>
+                  <p className="mb-3 md:mb-4 text-sm md:text-base" style={{ color: 'var(--primary-lighter)' }}>Engineering Excellence</p>
+                  <p className="text-white/60 leading-relaxed text-sm md:text-base">
                     A diverse team of engineers, designers, and domain experts passionate about transforming how buildings work.
                   </p>
                 </div>
@@ -788,7 +788,7 @@ export default function HomePage() {
         </section>
 
         {/* SECTION 13: FAQ */}
-        <section id="faq" className="py-24 px-6 bg-white">
+        <section id="faq" className="py-12 md:py-16 lg:py-24 px-4 md:px-6 bg-white">
           <div className="max-w-7xl mx-auto">
             <SectionHeader
               label="FAQ"
@@ -797,7 +797,7 @@ export default function HomePage() {
               description="Everything you need to know about Smart HVAC"
             />
 
-            <div className="max-w-3xl mx-auto space-y-4">
+            <div className="max-w-3xl mx-auto space-y-3 md:space-y-4">
               {[
                 { q: 'What HVAC systems are compatible with Smart HVAC?', a: 'Smart HVAC supports all major HVAC brands and protocols including Modbus, BACnet, LonWorks, and more. Our universal gateway can connect to virtually any modern HVAC system. Contact us for specific compatibility questions.' },
                 { q: 'How long does installation take?', a: 'Most installations are completed within 1-2 days. Our plug-and-play gateways connect to your existing infrastructure without disrupting operations. You\'ll start seeing data within minutes of connecting.' },
@@ -808,23 +808,23 @@ export default function HomePage() {
               ].map((faq, i) => (
                 <div
                   key={i}
-                  className={`animate-on-scroll stagger-${i + 1} border border-gray-100 rounded-2xl overflow-hidden transition-all hover:shadow-lg`}
+                  className={`animate-on-scroll stagger-${i + 1} border border-gray-100 rounded-xl md:rounded-2xl overflow-hidden transition-all hover:shadow-lg`}
                 >
                   <button
                     onClick={() => setActiveFaq(activeFaq === i ? null : i)}
-                    className="w-full px-6 py-5 flex justify-between items-center text-left bg-white hover:bg-gray-50 transition-colors"
+                    className="w-full px-4 md:px-6 py-4 md:py-5 flex justify-between items-center text-left bg-white hover:bg-gray-50 transition-colors gap-4"
                   >
-                    <h4 className="font-semibold text-gray-800">{faq.q}</h4>
+                    <h4 className="font-semibold text-gray-800 text-sm md:text-base pr-2">{faq.q}</h4>
                     <ChevronDownIcon
-                      className={`w-5 h-5 transition-transform duration-300 text-[var(--primary)] ${activeFaq === i ? 'rotate-180' : ''
-                        }`}
+                      className={`w-5 h-5 flex-shrink-0 transition-transform duration-300 text-[var(--primary)] ${
+                        activeFaq === i ? 'rotate-180' : ''
+                      }`}
                     />
-
                   </button>
                   <div
                     className={`overflow-hidden transition-all duration-400 ${activeFaq === i ? 'max-h-[300px]' : 'max-h-0'}`}
                   >
-                    <p className="px-6 pb-5 text-gray-500 leading-relaxed">{faq.a}</p>
+                    <p className="px-4 md:px-6 pb-4 md:pb-5 text-gray-500 leading-relaxed text-sm md:text-base">{faq.a}</p>
                   </div>
                 </div>
               ))}
@@ -833,30 +833,30 @@ export default function HomePage() {
         </section>
 
         {/* FINAL CTA */}
-        <section className="py-32 px-6 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)' }}>
+        <section className="py-16 md:py-24 lg:py-32 px-4 md:px-6 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)' }}>
           <div className="cta-bg-rotate absolute -top-1/2 -left-1/2 w-[200%] h-[200%] bg-[radial-gradient(circle,rgba(255,255,255,0.1)_0%,transparent_50%)]" />
 
           <div className="max-w-3xl mx-auto text-center relative z-10">
-            <h2 className="animate-on-scroll text-4xl md:text-5xl font-extrabold text-white mb-6 tracking-tight">
+            <h2 className="animate-on-scroll text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-white mb-4 md:mb-6 tracking-tight px-4">
               Ready to Transform Your Building?
             </h2>
-            <p className="animate-on-scroll stagger-1 text-xl text-white/85 mb-10 max-w-2xl mx-auto">
+            <p className="animate-on-scroll stagger-1 text-base md:text-lg lg:text-xl text-white/85 mb-6 md:mb-10 max-w-2xl mx-auto px-4">
               Join 10,000+ organizations already using Smart HVAC to save energy, reduce costs, and improve comfort.
             </p>
-            <div className="animate-on-scroll stagger-2 flex flex-col sm:flex-row justify-center gap-4">
+            <div className="animate-on-scroll stagger-2 flex flex-col sm:flex-row justify-center gap-3 md:gap-4 px-4">
               <a
                 href="#"
-                className="inline-flex items-center justify-center gap-3 bg-white px-10 py-4 rounded-xl text-lg font-bold transition-all hover:-translate-y-1 hover:shadow-2xl"
+                className="inline-flex items-center justify-center gap-2 md:gap-3 bg-white px-6 md:px-10 py-3 md:py-4 rounded-xl text-base md:text-lg font-bold transition-all hover:-translate-y-1 hover:shadow-2xl"
                 style={{ color: 'var(--primary)' }}
               >
                 Start Free Trial
-                <ArrowRightIcon className="w-5 h-5" />
+                <ArrowRightIcon className="w-4 h-4 md:w-5 md:h-5" />
               </a>
               <a
                 href="#"
-                className="inline-flex items-center justify-center gap-3 bg-transparent border-2 border-white/50 text-white px-10 py-4 rounded-xl text-lg font-semibold transition-all hover:bg-white/10 hover:border-white hover:-translate-y-1"
+                className="inline-flex items-center justify-center gap-2 md:gap-3 bg-transparent border-2 border-white/50 text-white px-6 md:px-10 py-3 md:py-4 rounded-xl text-base md:text-lg font-semibold transition-all hover:bg-white/10 hover:border-white hover:-translate-y-1"
               >
-                <PhoneIcon className="w-5 h-5" />
+                <PhoneIcon className="w-4 h-4 md:w-5 md:h-5" />
                 Schedule Demo
               </a>
             </div>
@@ -864,25 +864,25 @@ export default function HomePage() {
         </section>
 
         {/* Footer */}
-        <footer className="py-16 px-6" style={{ backgroundColor: '#0a1929' }}>
+        <footer className="py-12 md:py-16 px-4 md:px-6" style={{ backgroundColor: '#0a1929' }}>
           <div className="max-w-7xl mx-auto">
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-12 pb-12 border-b border-white/10">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12 pb-8 md:pb-12 border-b border-white/10">
               <div className="lg:col-span-1">
                 <a href="#" className="flex items-center gap-2 text-white mb-4">
-                  <CloudIcon className="w-7 h-7" />
-                  <span className="text-xl font-bold">Smart HVAC</span>
+                  <CloudIcon className="w-6 h-6 md:w-7 md:h-7" />
+                  <span className="text-lg md:text-xl font-bold">Smart HVAC</span>
                 </a>
-                <p className="text-gray-400 leading-relaxed mb-6 max-w-xs">
+                <p className="text-gray-400 leading-relaxed mb-4 md:mb-6 max-w-xs text-sm md:text-base">
                   Intelligent climate control for modern buildings. Save energy, reduce costs, and create comfortable spaces.
                 </p>
-                <div className="flex gap-3">
+                <div className="flex gap-2 md:gap-3">
                   {[TwitterIcon, LinkedInIcon, GithubIcon, YoutubeIcon].map((Icon, i) => (
                     <a
                       key={i}
                       href="#"
-                      className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-gray-400 transition-all hover:bg-[var(--primary)] hover:text-white"
+                      className="w-9 h-9 md:w-10 md:h-10 bg-white/5 rounded-xl flex items-center justify-center text-gray-400 transition-all hover:bg-[var(--primary)] hover:text-white"
                     >
-                      <Icon className="w-5 h-5" />
+                      <Icon className="w-4 h-4 md:w-5 md:h-5" />
                     </a>
                   ))}
                 </div>
@@ -894,11 +894,11 @@ export default function HomePage() {
                 { title: 'Support', links: ['Help Center', 'Documentation', 'Community', 'Status', 'Security'] },
               ].map((col) => (
                 <div key={col.title}>
-                  <h4 className="text-white font-semibold mb-5">{col.title}</h4>
-                  <ul className="space-y-3">
+                  <h4 className="text-white font-semibold mb-4 md:mb-5 text-sm md:text-base">{col.title}</h4>
+                  <ul className="space-y-2 md:space-y-3">
                     {col.links.map((link) => (
                       <li key={link}>
-                        <a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">
+                        <a href="#" className="text-gray-400 hover:text-white transition-colors text-xs md:text-sm">
                           {link}
                         </a>
                       </li>
@@ -908,11 +908,11 @@ export default function HomePage() {
               ))}
             </div>
 
-            <div className="pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-              <p className="text-gray-500 text-sm">&copy; 2026 Smart HVAC IoT System. All rights reserved.</p>
-              <div className="flex gap-8">
+            <div className="pt-6 md:pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+              <p className="text-gray-500 text-xs md:text-sm text-center md:text-left">&copy; 2026 Smart HVAC IoT System. All rights reserved.</p>
+              <div className="flex flex-wrap justify-center gap-4 md:gap-8">
                 {['Privacy Policy', 'Terms of Service', 'Cookie Policy'].map((link) => (
-                  <a key={link} href="#" className="text-gray-500 hover:text-white transition-colors text-sm">
+                  <a key={link} href="#" className="text-gray-500 hover:text-white transition-colors text-xs md:text-sm">
                     {link}
                   </a>
                 ))}
@@ -944,29 +944,30 @@ function SectionHeader({
   highlightColor?: string;
 }) {
   return (
-    <div className="text-center mb-16">
+    <div className="text-center mb-12 md:mb-16 px-4">
       <span
-        className="animate-on-scroll inline-block px-5 py-2 rounded-full text-white text-sm font-semibold mb-5"
+        className="animate-on-scroll inline-block px-4 md:px-5 py-1.5 md:py-2 rounded-full text-white text-xs md:text-sm font-semibold mb-4 md:mb-5"
         style={{ background: 'linear-gradient(135deg, var(--primary-light), var(--accent))' }}
       >
         {label}
       </span>
       <h2
-        className={`animate-on-scroll stagger-1 text-3xl md:text-4xl lg:text-5xl font-extrabold mb-4 tracking-tight leading-tight ${dark ? 'text-white' : 'text-gray-900'
-          }`}
+        className={`animate-on-scroll stagger-1 text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold mb-3 md:mb-4 tracking-tight leading-tight ${
+          dark ? 'text-white' : 'text-gray-900'
+        }`}
       >
         {title}{' '}
         <span style={{ color: highlightColor || 'var(--primary)' }}>{titleHighlight}</span>
         {titleEnd && ` ${titleEnd}`}
       </h2>
-      <p className={`animate-on-scroll stagger-2 text-lg max-w-2xl mx-auto leading-relaxed ${dark ? 'text-white/60' : 'text-gray-500'}`}>
+      <p className={`animate-on-scroll stagger-2 text-sm md:text-base lg:text-lg max-w-2xl mx-auto leading-relaxed ${dark ? 'text-white/60' : 'text-gray-500'}`}>
         {description}
       </p>
     </div>
   );
 }
 
-// SVG Icons
+// SVG Icons (unchanged from original)
 function CloudIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1263,67 +1264,6 @@ function YoutubeIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="currentColor">
       <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
-    </svg>
-  );
-}
-
-function ReactIcon({ className }: { className?: string }) {
-  return (
-    <svg className={`w-6 h-6 text-gray-600 ${className}`} viewBox="0 0 24 24" fill="currentColor">
-      <circle cx="12" cy="12" r="2.139" />
-      <ellipse cx="12" cy="12" rx="11" ry="4.2" fill="none" stroke="currentColor" strokeWidth="1" />
-      <ellipse cx="12" cy="12" rx="11" ry="4.2" fill="none" stroke="currentColor" strokeWidth="1" transform="rotate(60 12 12)" />
-      <ellipse cx="12" cy="12" rx="11" ry="4.2" fill="none" stroke="currentColor" strokeWidth="1" transform="rotate(120 12 12)" />
-    </svg>
-  );
-}
-
-function NodeIcon({ className }: { className?: string }) {
-  return (
-    <svg className={`w-6 h-6 text-gray-600 ${className}`} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12 21.985c-.275 0-.532-.074-.772-.202l-2.439-1.448c-.365-.203-.182-.277-.072-.314.496-.165.588-.201 1.101-.493.056-.037.129-.02.185.017l1.87 1.12c.074.036.166.036.221 0l7.319-4.237c.074-.036.11-.11.11-.202V7.768c0-.091-.036-.165-.11-.201l-7.319-4.219c-.073-.037-.165-.037-.221 0L4.552 7.566c-.073.036-.11.129-.11.201v8.457c0 .073.037.166.11.202l2 1.157c1.082.548 1.762-.095 1.762-.735V8.502c0-.11.091-.221.22-.221h.936c.108 0 .22.092.22.221v8.347c0 1.449-.788 2.294-2.164 2.294-.422 0-.752 0-1.688-.46l-1.925-1.099a1.55 1.55 0 0 1-.771-1.34V7.786c0-.55.293-1.064.771-1.339l7.316-4.237a1.637 1.637 0 0 1 1.544 0l7.317 4.237c.479.274.771.789.771 1.339v8.458c0 .549-.293 1.063-.771 1.34l-7.317 4.236c-.241.11-.516.185-.773.185z" />
-    </svg>
-  );
-}
-
-function PythonIcon({ className }: { className?: string }) {
-  return (
-    <svg className={`w-6 h-6 text-gray-600 ${className}`} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M14.25.18l.9.2.73.26.59.3.45.32.34.34.25.34.16.33.1.3.04.26.02.2-.01.13V8.5l-.05.63-.13.55-.21.46-.26.38-.3.31-.33.25-.35.19-.35.14-.33.1-.3.07-.26.04-.21.02H8.77l-.69.05-.59.14-.5.22-.41.27-.33.32-.27.35-.2.36-.15.37-.1.35-.07.32-.04.27-.02.21v3.06H3.17l-.21-.03-.28-.07-.32-.12-.35-.18-.36-.26-.36-.36-.35-.46-.32-.59-.28-.73-.21-.88-.14-1.05-.05-1.23.06-1.22.16-1.04.24-.87.32-.71.36-.57.4-.44.42-.33.42-.24.4-.16.36-.1.32-.05.24-.01h.16l.06.01h8.16v-.83H6.18l-.01-2.75-.02-.37.05-.34.11-.31.17-.28.25-.26.31-.23.38-.2.44-.18.51-.15.58-.12.64-.1.71-.06.77-.04.84-.02 1.27.05zm-6.3 1.98l-.23.33-.08.41.08.41.23.34.33.22.41.09.41-.09.33-.22.23-.34.08-.41-.08-.41-.23-.33-.33-.22-.41-.09-.41.09zm13.09 3.95l.28.06.32.12.35.18.36.27.36.35.35.47.32.59.28.73.21.88.14 1.04.05 1.23-.06 1.23-.16 1.04-.24.86-.32.71-.36.57-.4.45-.42.33-.42.24-.4.16-.36.09-.32.05-.24.02-.16-.01h-8.22v.82h5.84l.01 2.76.02.36-.05.34-.11.31-.17.29-.25.25-.31.24-.38.2-.44.17-.51.15-.58.13-.64.09-.71.07-.77.04-.84.01-1.27-.04-1.07-.14-.9-.2-.73-.25-.59-.3-.45-.33-.34-.34-.25-.34-.16-.33-.1-.3-.04-.25-.02-.2.01-.13v-5.34l.05-.64.13-.54.21-.46.26-.38.3-.32.33-.24.35-.2.35-.14.33-.1.3-.06.26-.04.21-.02.13-.01h5.84l.69-.05.59-.14.5-.21.41-.28.33-.32.27-.35.2-.36.15-.36.1-.35.07-.32.04-.28.02-.21V6.07h2.09l.14.01zm-6.47 14.25l-.23.33-.08.41.08.41.23.33.33.23.41.08.41-.08.33-.23.23-.33.08-.41-.08-.41-.23-.33-.33-.23-.41-.08-.41.08z" />
-    </svg>
-  );
-}
-
-function DatabaseIcon({ className }: { className?: string }) {
-  return (
-    <svg className={`w-6 h-6 text-gray-600 ${className}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <ellipse cx="12" cy="5" rx="9" ry="3" />
-      <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
-      <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
-    </svg>
-  );
-}
-
-function DockerIcon({ className }: { className?: string }) {
-  return (
-    <svg className={`w-6 h-6 text-gray-600 ${className}`} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M13.983 11.078h2.119a.186.186 0 00.186-.185V9.006a.186.186 0 00-.186-.186h-2.119a.185.185 0 00-.185.185v1.888c0 .102.083.185.185.185m-2.954-5.43h2.118a.186.186 0 00.186-.186V3.574a.186.186 0 00-.186-.185h-2.118a.185.185 0 00-.185.185v1.888c0 .102.082.185.185.186m0 2.716h2.118a.187.187 0 00.186-.186V6.29a.186.186 0 00-.186-.185h-2.118a.185.185 0 00-.185.185v1.887c0 .102.082.185.185.186m-2.93 0h2.12a.186.186 0 00.184-.186V6.29a.185.185 0 00-.185-.185H8.1a.185.185 0 00-.185.185v1.887c0 .102.083.185.185.186m-2.964 0h2.119a.186.186 0 00.185-.186V6.29a.185.185 0 00-.185-.185H5.136a.186.186 0 00-.186.185v1.887c0 .102.084.185.186.186m5.893 2.715h2.118a.186.186 0 00.186-.185V9.006a.186.186 0 00-.186-.186h-2.118a.185.185 0 00-.185.185v1.888c0 .102.082.185.185.185m-2.93 0h2.12a.185.185 0 00.184-.185V9.006a.185.185 0 00-.184-.186h-2.12a.185.185 0 00-.184.185v1.888c0 .102.083.185.185.185m-2.964 0h2.119a.185.185 0 00.185-.185V9.006a.185.185 0 00-.184-.186h-2.12a.186.186 0 00-.186.186v1.887c0 .102.084.185.186.185m-2.92 0h2.12a.185.185 0 00.184-.185V9.006a.185.185 0 00-.184-.186h-2.12a.185.185 0 00-.184.185v1.888c0 .102.082.185.185.185M23.763 9.89c-.065-.051-.672-.51-1.954-.51-.338.001-.676.03-1.01.087-.248-1.7-1.653-2.53-1.716-2.566l-.344-.199-.226.327c-.284.438-.49.922-.612 1.43-.23.97-.09 1.882.403 2.661-.595.332-1.55.413-1.744.42H.751a.751.751 0 00-.75.748 11.376 11.376 0 00.692 4.062c.545 1.428 1.355 2.48 2.41 3.124 1.18.723 3.1 1.137 5.275 1.137.983.003 1.963-.086 2.93-.266a12.248 12.248 0 003.823-1.389c.98-.567 1.86-1.288 2.61-2.136 1.252-1.418 1.998-2.997 2.553-4.4h.221c1.372 0 2.215-.549 2.68-1.009.309-.293.55-.65.707-1.046l.098-.288z" />
-    </svg>
-  );
-}
-
-function MqttIcon({ className }: { className?: string }) {
-  return (
-    <svg className={`w-6 h-6 text-gray-600 ${className}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2" />
-    </svg>
-  );
-}
-
-function GrafanaIcon({ className }: { className?: string }) {
-  return (
-    <svg className={`w-6 h-6 text-gray-600 ${className}`} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M22.687 12.57c-.054-.676-.397-1.058-.937-1.058-.16 0-.303.023-.445.074-.276-.76-.716-1.464-1.295-2.082.232-.27.356-.594.356-.944 0-.54-.214-1.05-.625-1.467-.463-.463-1.058-.693-1.79-.693-.196 0-.392.018-.571.054a6.91 6.91 0 00-1.824-1.593c.018-.107.036-.232.036-.357 0-.695-.268-1.29-.795-1.79C14.258 2.25 13.645 2 12.914 2c-.642 0-1.2.178-1.665.536A6.89 6.89 0 009.158 2c-.928 0-1.737.25-2.4.74a3.032 3.032 0 00-.803-.107c-.642 0-1.236.25-1.737.733-.482.464-.732 1.04-.732 1.7 0 .142.018.285.036.428-.643.464-1.161 1.04-1.54 1.718-.196-.036-.392-.054-.606-.054-.696 0-1.308.25-1.808.732C.072 8.39-.16 9.02.072 9.714c.178.536.535.947 1.058 1.218a6.95 6.95 0 00-.107 1.182c0 .66.089 1.308.268 1.932a1.84 1.84 0 00-.625.41c-.357.358-.553.822-.553 1.362 0 .66.267 1.236.785 1.718.518.482 1.129.714 1.825.714.107 0 .214 0 .321-.018.482.928 1.147 1.718 1.986 2.346-.09.232-.125.464-.125.714 0 .642.25 1.2.75 1.683.5.482 1.093.724 1.79.724.552 0 1.057-.178 1.504-.518.75.214 1.54.321 2.365.321.857 0 1.682-.125 2.453-.357.41.375.91.571 1.486.571.606 0 1.147-.214 1.593-.625.446-.41.678-.928.696-1.54a6.943 6.943 0 002.382-2.56c.09.017.179.017.268.017.624 0 1.182-.214 1.665-.66.481-.447.731-1.004.731-1.665 0-.232-.036-.446-.107-.66.5-.535.875-1.146 1.111-1.826.054.018.107.018.179.018.624 0 1.164-.232 1.593-.696.428-.464.66-1.022.66-1.7 0-.053 0-.124-.018-.195.268-.268.428-.625.428-1.04 0-.447-.142-.857-.428-1.183zm-10.48 4.81a4.995 4.995 0 01-2.81.857 5.018 5.018 0 01-3.579-1.486 5 5 0 01-1.486-3.56c0-.928.25-1.79.75-2.578a5.118 5.118 0 012.01-1.86 4.941 4.941 0 012.685-.749c.785 0 1.54.178 2.239.535a5.09 5.09 0 011.754 1.415 5.115 5.115 0 01.946 2.221 5.001 5.001 0 01-.339 2.703 4.974 4.974 0 01-2.17 2.503z" />
     </svg>
   );
 }
